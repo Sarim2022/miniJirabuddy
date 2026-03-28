@@ -53,21 +53,61 @@ service cloud.firestore {
           && request.resource.data.memberUids.size() == 1
           && request.resource.data.memberUids.hasAny([request.auth.uid]);
 
-        allow read: if isUserSpaceMember(userId, spaceId);
+        allow read: if request.auth.uid == userId || isUserSpaceMember(userId, spaceId);
         allow update, delete: if isUserSpaceOwner(userId, spaceId);
 
         match /tasks/{taskId} {
-          allow read, create, update, delete: if isUserSpaceMember(userId, spaceId);
+          allow read: if request.auth.uid == userId || isUserSpaceMember(userId, spaceId);
+
+          allow create: if signedIn()
+            && (request.auth.uid == userId || isUserSpaceMember(userId, spaceId))
+            && request.resource.data.taskName is string
+            && request.resource.data.taskName.size() > 0
+            && request.resource.data.issueTag is string
+            && (request.resource.data.issueTag == "task"
+              || request.resource.data.issueTag == "story"
+              || request.resource.data.issueTag == "epic")
+            && request.resource.data.priority is string
+            && (request.resource.data.priority == "low"
+              || request.resource.data.priority == "medium"
+              || request.resource.data.priority == "high")
+            && request.resource.data.status is string
+            && (request.resource.data.status == "todo"
+              || request.resource.data.status == "in-progress"
+              || request.resource.data.status == "review"
+              || request.resource.data.status == "done")
+            && request.resource.data.createdByUid == request.auth.uid;
+
+          allow update, delete: if request.auth.uid == userId || isUserSpaceMember(userId, spaceId);
         }
       }
     }
 
     match /spaces/{spaceId} {
-      allow read: if isLegacySpaceMember(spaceId);
+      allow read: if isLegacySpaceOwner(spaceId) || isLegacySpaceMember(spaceId);
       allow update, delete: if isLegacySpaceOwner(spaceId);
 
       match /tasks/{taskId} {
-        allow read, create, update, delete: if isLegacySpaceMember(spaceId);
+        allow read: if isLegacySpaceOwner(spaceId) || isLegacySpaceMember(spaceId);
+        allow create: if signedIn()
+          && (isLegacySpaceOwner(spaceId) || isLegacySpaceMember(spaceId))
+          && request.resource.data.taskName is string
+          && request.resource.data.taskName.size() > 0
+          && request.resource.data.issueTag is string
+          && (request.resource.data.issueTag == "task"
+            || request.resource.data.issueTag == "story"
+            || request.resource.data.issueTag == "epic")
+          && request.resource.data.priority is string
+          && (request.resource.data.priority == "low"
+            || request.resource.data.priority == "medium"
+            || request.resource.data.priority == "high")
+          && request.resource.data.status is string
+          && (request.resource.data.status == "todo"
+            || request.resource.data.status == "in-progress"
+            || request.resource.data.status == "review"
+            || request.resource.data.status == "done")
+          && request.resource.data.createdByUid == request.auth.uid;
+        allow update, delete: if isLegacySpaceOwner(spaceId) || isLegacySpaceMember(spaceId);
       }
     }
 

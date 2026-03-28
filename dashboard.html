@@ -322,6 +322,79 @@
         box-shadow: inset 0 -2px 0 var(--nav);
       }
 
+      .task-list {
+        display: grid;
+        gap: 10px;
+        flex: 1;
+      }
+
+      .task-card {
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+      }
+
+      .task-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .task-card-title {
+        margin: 0;
+        font-size: 0.98rem;
+        line-height: 1.35;
+        color: var(--text);
+      }
+
+      .task-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: rgba(22, 114, 241, 0.08);
+        color: var(--nav-deep);
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .task-badge.priority-low {
+        background: rgba(34, 197, 94, 0.1);
+        color: #15803d;
+      }
+
+      .task-badge.priority-medium {
+        background: rgba(245, 158, 11, 0.12);
+        color: #b45309;
+      }
+
+      .task-badge.priority-high {
+        background: rgba(239, 68, 68, 0.1);
+        color: #b91c1c;
+      }
+
+      .task-meta {
+        display: grid;
+        gap: 4px;
+        font-size: 0.85rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .task-meta strong {
+        color: var(--text);
+      }
+
       .project-toolbar {
         display: flex;
         align-items: center;
@@ -494,7 +567,23 @@
         outline: none;
       }
 
+      .field select {
+        min-height: 48px;
+        padding: 0 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        background: #fff;
+        color: var(--text);
+        font: inherit;
+        outline: none;
+      }
+
       .field input:focus {
+        border-color: rgba(22, 114, 241, 0.46);
+        box-shadow: 0 0 0 4px rgba(22, 114, 241, 0.12);
+      }
+
+      .field select:focus {
         border-color: rgba(22, 114, 241, 0.46);
         box-shadow: 0 0 0 4px rgba(22, 114, 241, 0.12);
       }
@@ -626,6 +715,10 @@
           gap: 14px;
         }
 
+        .task-card-head {
+          flex-direction: column;
+        }
+
         .code-pill {
           align-self: flex-start;
         }
@@ -694,19 +787,27 @@
           <div class="kanban">
             <article class="lane">
               <h3>Todo</h3>
-              <div class="lane-empty">No tasks yet</div>
+              <div class="task-list" id="task-list-todo">
+                <div class="lane-empty">No tasks yet</div>
+              </div>
             </article>
             <article class="lane">
               <h3>In Progress</h3>
-              <div class="lane-empty">No tasks yet</div>
+              <div class="task-list" id="task-list-in-progress">
+                <div class="lane-empty">No tasks yet</div>
+              </div>
             </article>
             <article class="lane">
               <h3>Review</h3>
-              <div class="lane-empty">No tasks yet</div>
+              <div class="task-list" id="task-list-review">
+                <div class="lane-empty">No tasks yet</div>
+              </div>
             </article>
             <article class="lane">
               <h3>Done</h3>
-              <div class="lane-empty">No tasks yet</div>
+              <div class="task-list" id="task-list-done">
+                <div class="lane-empty">No tasks yet</div>
+              </div>
             </article>
           </div>
         </section>
@@ -734,6 +835,60 @@
           <div class="form-actions">
             <button class="secondary-btn" id="cancel-space" type="button">Cancel</button>
             <button class="primary-btn" id="submit-space" type="submit">Create Space</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal" id="task-modal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+        <div class="modal-head">
+          <h2 id="task-modal-title">Create Jira Task</h2>
+          <button class="close-btn" id="close-task-modal" type="button" aria-label="Close">X</button>
+        </div>
+
+        <form class="space-form" id="task-form">
+          <div class="field">
+            <label for="task-name">Task name</label>
+            <input id="task-name" name="task-name" type="text" placeholder="Enter task name" required maxlength="80">
+          </div>
+
+          <div class="field">
+            <label for="task-issue-tag">Issue tag</label>
+            <select id="task-issue-tag" name="task-issue-tag" required>
+              <option value="task">Task</option>
+              <option value="story">Story</option>
+              <option value="epic">Epic</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="task-priority">Priority</label>
+            <select id="task-priority" name="task-priority" required>
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="task-status">Status</label>
+            <select id="task-status" name="task-status" required>
+              <option value="todo">Todo</option>
+              <option value="in-progress">In Progress</option>
+              <option value="review">Review</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="task-assignee">Assignee</label>
+            <input id="task-assignee" name="task-assignee" type="text" placeholder="MiniJira user name or email">
+          </div>
+
+          <div class="form-actions">
+            <button class="secondary-btn" id="cancel-task" type="button">Cancel</button>
+            <button class="primary-btn" id="submit-task" type="submit">Create Jira Task</button>
           </div>
         </form>
       </div>
@@ -799,16 +954,33 @@
       const projectNameInput = document.getElementById("project-name");
       const projectKeyInput = document.getElementById("project-key");
       const submitSpace = document.getElementById("submit-space");
+      const taskModal = document.getElementById("task-modal");
+      const closeTaskModalBtn = document.getElementById("close-task-modal");
+      const cancelTask = document.getElementById("cancel-task");
+      const taskForm = document.getElementById("task-form");
+      const taskNameInput = document.getElementById("task-name");
+      const taskIssueTagInput = document.getElementById("task-issue-tag");
+      const taskPriorityInput = document.getElementById("task-priority");
+      const taskStatusInput = document.getElementById("task-status");
+      const taskAssigneeInput = document.getElementById("task-assignee");
+      const submitTask = document.getElementById("submit-task");
+      const taskLaneTodo = document.getElementById("task-list-todo");
+      const taskLaneInProgress = document.getElementById("task-list-in-progress");
+      const taskLaneReview = document.getElementById("task-list-review");
+      const taskLaneDone = document.getElementById("task-list-done");
       const toast = document.getElementById("toast");
       const boardNavButtons = Array.from(document.querySelectorAll("[data-board-section]"));
 
       let currentUser = null;
       let nestedSpacesUnsubscribe = null;
       let legacySpacesUnsubscribe = null;
+      let tasksUnsubscribe = null;
       let nestedSpaces = [];
       let legacySpaces = [];
       let spaces = [];
+      let tasks = [];
       let selectedSpaceKey = null;
+      let currentTasksSpaceKey = null;
       let activeBoardSection = "board";
       let toastTimer = null;
 
@@ -995,6 +1167,172 @@
         showToast(`${count} team member${count === 1 ? "" : "s"} in this space.`);
       }
 
+      function normalizeTaskStatus(value) {
+        const status = String(value || "todo").toLowerCase();
+
+        if (status === "in progress" || status === "in_progress") {
+          return "in-progress";
+        }
+
+        if (status === "todo" || status === "in-progress" || status === "review" || status === "done") {
+          return status;
+        }
+
+        return "todo";
+      }
+
+      function normalizeTaskPriority(value) {
+        const priority = String(value || "medium").toLowerCase();
+
+        if (priority === "low" || priority === "medium" || priority === "high") {
+          return priority;
+        }
+
+        return "medium";
+      }
+
+      function getTaskLaneElement(status) {
+        const normalizedStatus = normalizeTaskStatus(status);
+
+        if (normalizedStatus === "in-progress") {
+          return taskLaneInProgress;
+        }
+
+        if (normalizedStatus === "review") {
+          return taskLaneReview;
+        }
+
+        if (normalizedStatus === "done") {
+          return taskLaneDone;
+        }
+
+        return taskLaneTodo;
+      }
+
+      function openTaskModal() {
+        const space = requireSelectedSpace("Create a space first.");
+        if (!space) {
+          return;
+        }
+
+        taskForm.reset();
+        taskStatusInput.value = "todo";
+        taskPriorityInput.value = "medium";
+        taskModal.hidden = false;
+        window.setTimeout(() => taskNameInput.focus(), 0);
+      }
+
+      function closeTaskModal() {
+        taskModal.hidden = true;
+        taskForm.reset();
+      }
+
+      function renderTasks() {
+        const grouped = {
+          todo: [],
+          "in-progress": [],
+          review: [],
+          done: []
+        };
+
+        for (const task of tasks) {
+          grouped[normalizeTaskStatus(task.status)].push(task);
+        }
+
+        const laneMap = [
+          ["todo", taskLaneTodo],
+          ["in-progress", taskLaneInProgress],
+          ["review", taskLaneReview],
+          ["done", taskLaneDone]
+        ];
+
+        for (const [status, lane] of laneMap) {
+          lane.replaceChildren();
+
+          const laneTasks = grouped[status];
+
+          if (!laneTasks.length) {
+            const empty = document.createElement("div");
+            empty.className = "lane-empty";
+            empty.textContent = "No tasks yet";
+            lane.appendChild(empty);
+            continue;
+          }
+
+          for (const task of laneTasks) {
+            const card = document.createElement("article");
+            card.className = "task-card";
+
+            const head = document.createElement("div");
+            head.className = "task-card-head";
+
+            const title = document.createElement("h4");
+            title.className = "task-card-title";
+            title.textContent = task.taskName || "Untitled task";
+
+            const tag = document.createElement("span");
+            tag.className = "task-badge";
+            tag.textContent = (task.issueTag || "task").toUpperCase();
+
+            const priorityTag = document.createElement("span");
+            const normalizedPriority = normalizeTaskPriority(task.priority);
+            priorityTag.className = `task-badge priority-${normalizedPriority}`;
+            priorityTag.textContent = normalizedPriority.toUpperCase();
+
+            head.append(title, tag, priorityTag);
+
+            const meta = document.createElement("div");
+            meta.className = "task-meta";
+
+            const priority = document.createElement("div");
+            const priorityLabel = document.createElement("strong");
+            priorityLabel.textContent = "Priority:";
+            priority.append(priorityLabel, document.createTextNode(` ${normalizedPriority.toUpperCase()}`));
+
+            const assignee = document.createElement("div");
+            const assigneeLabel = document.createElement("strong");
+            assigneeLabel.textContent = "Assignee:";
+            assignee.append(assigneeLabel, document.createTextNode(` ${task.assignee || "Unassigned"}`));
+
+            meta.append(priority, assignee);
+            card.append(head, meta);
+            lane.appendChild(card);
+          }
+        }
+      }
+
+      function startTasksListener(space) {
+        if (tasksUnsubscribe) {
+          tasksUnsubscribe();
+          tasksUnsubscribe = null;
+        }
+
+        currentTasksSpaceKey = space ? space.key : null;
+        tasks = [];
+        renderTasks();
+
+        if (!space) {
+          return;
+        }
+
+        const taskRef = collection(db, "users", space.ownerUid || currentUser.uid, "spaces", space.id, "tasks");
+        tasksUnsubscribe = onSnapshot(
+          taskRef,
+          { includeMetadataChanges: true },
+          (snapshot) => {
+            tasks = snapshot.docs
+              .map((taskDoc) => ({ id: taskDoc.id, ...taskDoc.data() }))
+              .sort((a, b) => (b.clientCreatedAt || 0) - (a.clientCreatedAt || 0));
+
+            renderTasks();
+          },
+          (error) => {
+            console.error("Task listener failed:", error);
+            showToast("Could not load tasks from Firebase.");
+          }
+        );
+      }
+
       function renderSpaces() {
         spaceCount.textContent = String(spaces.length);
         spaceList.replaceChildren();
@@ -1040,12 +1378,14 @@
           boardTitle.textContent = "No Space";
           boardMeta.textContent = "Create a space to begin organizing tasks.";
           boardKey.textContent = "------";
+          startTasksListener(null);
           return;
         }
 
         boardTitle.textContent = space.projectName || "Untitled space";
         boardMeta.textContent = `Project key ${space.projectKey} - ready for kanban tasks.`;
         boardKey.textContent = space.projectKey || "------";
+        startTasksListener(space);
       }
 
       function renderWorkspace() {
@@ -1081,12 +1421,12 @@
 
         if (legacySpacesUnsubscribe) {
           legacySpacesUnsubscribe();
+          legacySpacesUnsubscribe = null;
         }
 
-        const nestedQueryRef = query(
-          collectionGroup(db, "spaces"),
-          where("memberUids", "array-contains", uid)
-        );
+        legacySpaces = [];
+
+        const nestedQueryRef = collection(db, "users", uid, "spaces");
         nestedSpacesUnsubscribe = onSnapshot(
           nestedQueryRef,
           { includeMetadataChanges: true },
@@ -1104,38 +1444,12 @@
               )
               .sort((a, b) => (b.clientCreatedAt || 0) - (a.clientCreatedAt || 0));
 
-            updateNestedSpaces(nextSpaces);
+            nestedSpaces = nextSpaces;
+            syncSpaces();
           },
           (error) => {
-            console.error("Nested space listener failed:", error);
-          }
-        );
-
-        const legacyQueryRef = query(
-          collection(db, "spaces"),
-          where("memberUids", "array-contains", uid)
-        );
-        legacySpacesUnsubscribe = onSnapshot(
-          legacyQueryRef,
-          { includeMetadataChanges: true },
-          (snapshot) => {
-            const nextSpaces = snapshot.docs
-              .map((spaceDoc) =>
-                normalizeSpaceDoc(
-                  {
-                    id: spaceDoc.id,
-                    path: spaceDoc.ref.path,
-                    ...spaceDoc.data()
-                  },
-                  uid
-                )
-              )
-              .sort((a, b) => (b.clientCreatedAt || 0) - (a.clientCreatedAt || 0));
-
-            updateLegacySpaces(nextSpaces);
-          },
-          (error) => {
-            console.error("Legacy space listener failed:", error);
+            console.error("Space listener failed:", error);
+            showToast("Could not load spaces from Firebase.");
           }
         );
       }
@@ -1158,12 +1472,11 @@
       createSpaceBtn.addEventListener("click", openSpaceModal);
 
       createTaskBtn.addEventListener("click", () => {
-        const space = getSelectedSpace();
-        showToast(space ? `Task creation for "${space.projectName}" comes next.` : "Create a space first.");
+        openTaskModal();
       });
 
       createJiraBtn.addEventListener("click", () => {
-        showComingSoonAction("Create Jira");
+        openTaskModal();
       });
 
       shareBtn.addEventListener("click", shareSelectedSpace);
@@ -1213,15 +1526,28 @@
       closeSpaceModal.addEventListener("click", closeModal);
       cancelSpace.addEventListener("click", closeModal);
 
+      closeTaskModalBtn.addEventListener("click", closeTaskModal);
+      cancelTask.addEventListener("click", closeTaskModal);
+
       spaceModal.addEventListener("click", (event) => {
         if (event.target === spaceModal) {
           closeModal();
         }
       });
 
+      taskModal.addEventListener("click", (event) => {
+        if (event.target === taskModal) {
+          closeTaskModal();
+        }
+      });
+
       window.addEventListener("keydown", (event) => {
         if (event.key === "Escape" && !spaceModal.hidden) {
           closeModal();
+        }
+
+        if (event.key === "Escape" && !taskModal.hidden) {
+          closeTaskModal();
         }
       });
 
@@ -1260,6 +1586,61 @@
           showToast("Could not create this space right now.");
         } finally {
           submitSpace.disabled = false;
+        }
+      });
+
+      taskForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        if (!currentUser) {
+          return;
+        }
+
+        const space = getSelectedSpace();
+
+        if (!space) {
+          showToast("Create a space first.");
+          return;
+        }
+
+        const taskName = taskNameInput.value.trim();
+
+        if (!taskName) {
+          showToast("Please enter a task name.");
+          taskNameInput.focus();
+          return;
+        }
+
+        const payload = {
+          taskName,
+          issueTag: taskIssueTagInput.value,
+          priority: taskPriorityInput.value,
+          status: normalizeTaskStatus(taskStatusInput.value),
+          assignee: taskAssigneeInput.value.trim(),
+          spaceId: space.id,
+          spaceKey: space.projectKey || "",
+          spaceName: space.projectName || "",
+          ownerUid: currentUser.uid,
+          createdByUid: currentUser.uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          clientCreatedAt: Date.now()
+        };
+
+        submitTask.disabled = true;
+
+        try {
+          await addDoc(
+            collection(db, "users", space.ownerUid || currentUser.uid, "spaces", space.id, "tasks"),
+            payload
+          );
+          closeTaskModal();
+          showToast(`Task "${taskName}" created.`);
+        } catch (error) {
+          console.error(error);
+          showToast("Could not create this task right now.");
+        } finally {
+          submitTask.disabled = false;
         }
       });
 
