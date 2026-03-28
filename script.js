@@ -74,6 +74,7 @@ let ownedProjects = [];
 let memberProjects = [];
 let tasks = [];
 let selectedProjectId = null;
+let currentTasksProjectId = null;
 let activeBoardSection = "board";
 let ownedProjectsUnsub = null;
 let memberProjectsUnsub = null;
@@ -751,7 +752,11 @@ projectForm?.addEventListener("submit", async (event) => {
     showToast(`Project "${name}" created.`);
   } catch (error) {
     console.error(error);
-    showToast("Could not create this project right now.");
+    showToast(
+      error?.code === "permission-denied"
+        ? "Firebase rules are blocking this write. Publish the updated Firestore rules."
+        : "Could not create this project right now."
+    );
   } finally {
     submitProjectBtn.disabled = false;
   }
