@@ -4,6 +4,7 @@ import {
   arrayUnion,
   collection,
   doc,
+  getDoc,
   getDocs,
   getFirestore,
   limit,
@@ -11,7 +12,6 @@ import {
   query,
   serverTimestamp,
   setDoc,
-  updateDoc,
   where
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
@@ -217,7 +217,7 @@ function openTaskModal() {
 }
 
 function normalizeProjectDoc(docSnap) {
-  const projectId = docSnap.projectId || docSnap.id;
+  const projectId = docSnap.projectId || docSnap.spaceId || docSnap.id;
   return {
     id: docSnap.id,
     projectId,
@@ -231,6 +231,34 @@ function normalizeProjectDoc(docSnap) {
     projectKey: docSnap.projectKey || "",
     clientCreatedAt: docSnap.clientCreatedAt || 0
   };
+}
+
+async function syncLegacySpaceDoc(project, memberIds = null) {
+  if (!project?.projectId) return;
+  const members = Array.isArray(memberIds)
+    ? memberIds
+    : Array.isArray(project.members)
+      ? project.members
+      : [];
+  const ownerId = project.ownerId || project.ownerUid || currentUser?.uid || "";
+  const name = project.name || project.projectName || "Untitled project";
+  await setDoc(
+    doc(db, "spaces", project.projectId),
+    {
+      projectId: project.projectId,
+      spaceId: project.projectId,
+      name,
+      projectName: name,
+      projectKey: project.projectKey || "",
+      ownerId,
+      ownerUid: ownerId,
+      members,
+      memberUids: members,
+      clientCreatedAt: project.clientCreatedAt || Date.now(),
+      updatedAt: serverTimestamp()
+    },
+    { merge: true }
+  );
 }
 
 function renderProjectList() {
@@ -536,6 +564,53 @@ function syncProjects() {
   renderWorkspace();
 }
 
+function startOwnedProjectsListener(uid, useLegacy = false) {
+  const collectionName = useLegacy ? "spaces" : "projects";
+  const fieldName = useLegacy ? "ownerUid" : "ownerId";
+  ownedProjectsUnsub = onSnapshot(
+    query(collection(db, collectionName), where(fieldName, "==", uid)),
+    (snap) => {
+      ownedProjects = snap.docs.map((d) => normalizeProjectDoc({ id: d.id, ...d.data() }));
+      syncProjects();
+      if (!useLegacy) {
+        void Promise.all(ownedProjects.map((project) => syncLegacySpaceDoc(project))).catch((error) => {
+          console.warn("Legacy project mirror failed:", error);
+        });
+      }
+    },
+    (err) => {
+      if (!useLegacy && err?.code === "permission-denied") {
+        console.warn("Owned projects listener fell back to legacy spaces:", err);
+        startOwnedProjectsListener(uid, true);
+        return;
+      }
+      console.error(`${useLegacy ? "Legacy" : "Owned"} projects listener failed:`, err);
+      showToast(useLegacy ? "Could not load your projects." : "Could not load owned projects.");
+    }
+  );
+}
+
+function startMemberProjectsListener(uid, useLegacy = false) {
+  const collectionName = useLegacy ? "spaces" : "projects";
+  const fieldName = useLegacy ? "memberUids" : "members";
+  memberProjectsUnsub = onSnapshot(
+    query(collection(db, collectionName), where(fieldName, "array-contains", uid)),
+    (snap) => {
+      memberProjects = snap.docs.map((d) => normalizeProjectDoc({ id: d.id, ...d.data() }));
+      syncProjects();
+    },
+    (err) => {
+      if (!useLegacy && err?.code === "permission-denied") {
+        console.warn("Member projects listener fell back to legacy spaces:", err);
+        startMemberProjectsListener(uid, true);
+        return;
+      }
+      console.error(`${useLegacy ? "Legacy" : "Member"} projects listener failed:`, err);
+      showToast("Could not load shared projects.");
+    }
+  );
+}
+
 function loadUserProjects(uid) {
   clearListeners();
   ownedProjects = [];
@@ -545,20 +620,8 @@ function loadUserProjects(uid) {
   selectedProjectId = null;
   currentTasksProjectId = null;
   renderWorkspace();
-  ownedProjectsUnsub = onSnapshot(query(collection(db, "projects"), where("ownerId", "==", uid)), (snap) => {
-    ownedProjects = snap.docs.map((d) => normalizeProjectDoc({ id: d.id, ...d.data() }));
-    syncProjects();
-  }, (err) => {
-    console.error("Owned projects listener failed:", err);
-    showToast("Could not load owned projects.");
-  });
-  memberProjectsUnsub = onSnapshot(query(collection(db, "projects"), where("members", "array-contains", uid)), (snap) => {
-    memberProjects = snap.docs.map((d) => normalizeProjectDoc({ id: d.id, ...d.data() }));
-    syncProjects();
-  }, (err) => {
-    console.error("Member projects listener failed:", err);
-    showToast("Could not load shared projects.");
-  });
+  startOwnedProjectsListener(uid);
+  startMemberProjectsListener(uid);
 }
 
 function syncTasks() {
@@ -584,15 +647,53 @@ function syncTasks() {
   renderWorkspaceSection(activeBoardSection, project);
 }
 
-async function addMemberToProject(projectId, userId) {
+async function addMemberToProject(projectId, userId, project = null) {
   if (!projectId || !userId) return;
-  await updateDoc(doc(db, "projects", projectId), { members: arrayUnion(userId), updatedAt: serverTimestamp() });
+  await setDoc(
+    doc(db, "projects", projectId),
+    {
+      members: arrayUnion(userId),
+      memberUids: arrayUnion(userId),
+      updatedAt: serverTimestamp()
+    },
+    { merge: true }
+  );
+
+  let sourceProject = project && project.projectId === projectId ? project : getSelectedProject();
+  if (!sourceProject || sourceProject.projectId !== projectId) {
+    try {
+      const snap = await getDoc(doc(db, "projects", projectId));
+      if (snap.exists()) {
+        sourceProject = normalizeProjectDoc({ id: snap.id, ...snap.data() });
+      }
+    } catch (error) {
+      console.warn("Could not read project for legacy sync:", error);
+    }
+  }
+
+  if (sourceProject) {
+    const members = Array.from(new Set([...(Array.isArray(sourceProject.members) ? sourceProject.members : []), userId]));
+    await syncLegacySpaceDoc(sourceProject, members);
+    return;
+  }
+
+  await setDoc(
+    doc(db, "spaces", projectId),
+    {
+      projectId,
+      spaceId: projectId,
+      members: arrayUnion(userId),
+      memberUids: arrayUnion(userId),
+      updatedAt: serverTimestamp()
+    },
+    { merge: true }
+  );
 }
 
 async function ensureProjectMembership(projectId, userId) {
   if (!projectId || !userId) return;
   if (lastMembershipAdd.projectId === projectId && lastMembershipAdd.userId === userId) return;
-  await addMemberToProject(projectId, userId);
+  await addMemberToProject(projectId, userId, getSelectedProject());
   lastMembershipAdd = { projectId, userId };
 }
 
@@ -675,15 +776,20 @@ async function createProject(name, code) {
   const projectRef = doc(collection(db, "projects"));
   const payload = {
     projectId: projectRef.id,
+    spaceId: projectRef.id,
     name,
+    projectName: name,
     projectKey: code,
     ownerId: currentUser.uid,
+    ownerUid: currentUser.uid,
     members: [currentUser.uid],
+    memberUids: [currentUser.uid],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     clientCreatedAt: Date.now()
   };
   await setDoc(projectRef, payload);
+  await setDoc(doc(db, "spaces", projectRef.id), payload);
   return payload;
 }
 
@@ -749,9 +855,13 @@ projectForm?.addEventListener("submit", async (event) => {
     const optimisticProject = {
       id: created.projectId,
       projectId: created.projectId,
+      spaceId: created.projectId,
       name,
+      projectName: name,
       ownerId: currentUser.uid,
+      ownerUid: currentUser.uid,
       members: [currentUser.uid],
+      memberUids: [currentUser.uid],
       projectKey: code,
       clientCreatedAt: created.clientCreatedAt || Date.now()
     };
