@@ -777,12 +777,12 @@ taskForm?.addEventListener("submit", async (event) => {
   let visibility = "project";
   let message = "Task created.";
 
-  submitTaskBtn.disabled = true;
+  if (submitTaskBtn) submitTaskBtn.disabled = true;
   try {
     if (email) {
       if (!isValidEmail(email)) {
         showToast("Enter a valid email address.");
-        taskAssigneeInput.focus();
+        taskAssigneeInput?.focus();
         return;
       }
       const result = await resolveAssigneeEmail(email, { autoAddMember: true });
@@ -821,7 +821,7 @@ taskForm?.addEventListener("submit", async (event) => {
     console.error(error);
     showToast(error?.code === "permission-denied" ? "Firebase rules are blocking this write. Publish the updated Firestore rules." : "Could not create this task right now.");
   } finally {
-    submitTaskBtn.disabled = false;
+    if (submitTaskBtn) submitTaskBtn.disabled = false;
   }
 });
 
