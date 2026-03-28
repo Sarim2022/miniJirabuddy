@@ -271,6 +271,7 @@
           uid: user.uid,
           displayName: user.displayName || "",
           email: user.email || "",
+          emailLower: (user.email || "").toLowerCase(),
           photoURL: user.photoURL || "",
           providerId: user.providerData?.[0]?.providerId || "google.com",
           lastLoginAt: serverTimestamp()

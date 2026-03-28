@@ -14,6 +14,10 @@ service cloud.firestore {
       return /databases/$(database)/documents/spaces/$(spaceId);
     }
 
+    function projectDoc(projectId) {
+      return /databases/$(database)/documents/projects/$(projectId);
+    }
+
     function isUserSpaceMember(userId, spaceId) {
       return signedIn()
         && exists(userSpaceDoc(userId, spaceId))
@@ -38,8 +42,25 @@ service cloud.firestore {
         && get(legacySpaceDoc(spaceId)).data.ownerUid == request.auth.uid;
     }
 
+    function isProjectOwner(projectId) {
+      return signedIn()
+        && exists(projectDoc(projectId))
+        && get(projectDoc(projectId)).data.ownerId == request.auth.uid;
+    }
+
+    function isProjectMember(projectId) {
+      return signedIn()
+        && exists(projectDoc(projectId))
+        && get(projectDoc(projectId)).data.members.hasAny([request.auth.uid]);
+    }
+
+    function canAccessProject(projectId) {
+      return isProjectOwner(projectId) || isProjectMember(projectId);
+    }
+
     match /users/{userId} {
-      allow create, read, update, delete: if signedIn() && request.auth.uid == userId;
+      allow read: if signedIn();
+      allow create, update, delete: if signedIn() && request.auth.uid == userId;
 
       match /spaces/{spaceId} {
         allow create: if signedIn()
@@ -62,6 +83,7 @@ service cloud.firestore {
           allow create: if signedIn()
             && (request.auth.uid == userId || isUserSpaceMember(userId, spaceId))
             && request.resource.data.spaceId == spaceId
+            && request.resource.data.description is string
             && request.resource.data.taskName is string
             && request.resource.data.taskName.size() > 0
             && request.resource.data.issueTag is string
@@ -88,6 +110,60 @@ service cloud.firestore {
       }
     }
 
+    match /projects/{projectId} {
+      allow create: if signedIn()
+        && request.auth.uid == request.resource.data.ownerId
+        && request.resource.data.projectId == projectId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.members is list
+        && request.resource.data.members.size() == 1
+        && request.resource.data.members.hasAny([request.auth.uid]);
+
+      allow read: if canAccessProject(projectId);
+
+      allow update: if signedIn()
+        && canAccessProject(projectId)
+        && request.resource.data.projectId == projectId
+        && request.resource.data.ownerId == resource.data.ownerId;
+
+      allow delete: if isProjectOwner(projectId);
+
+      match /tasks/{taskId} {
+        allow read: if canAccessProject(projectId)
+          && (resource.data.visibility != "owner" || isProjectOwner(projectId));
+
+        allow create: if signedIn()
+          && canAccessProject(projectId)
+          && request.resource.data.projectId == projectId
+          && request.resource.data.taskId == taskId
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.description is string
+          && request.resource.data.status is string
+          && (request.resource.data.status == "todo"
+            || request.resource.data.status == "progress"
+            || request.resource.data.status == "done")
+          && (request.resource.data.assignedTo == null || request.resource.data.assignedTo is string)
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.visibility is string
+          && (
+            (request.resource.data.visibility == "project" && canAccessProject(projectId))
+            || (request.resource.data.visibility == "owner" && isProjectOwner(projectId))
+          );
+
+        allow update: if signedIn()
+          && canAccessProject(projectId)
+          && request.resource.data.projectId == projectId
+          && request.resource.data.taskId == taskId
+          && request.resource.data.createdBy == resource.data.createdBy
+          && (resource.data.visibility != "owner" || isProjectOwner(projectId));
+
+        allow delete: if canAccessProject(projectId)
+          && (resource.data.visibility != "owner" || isProjectOwner(projectId));
+      }
+    }
+
     match /spaces/{spaceId} {
       allow read: if isLegacySpaceOwner(spaceId) || isLegacySpaceMember(spaceId);
       allow update, delete: if isLegacySpaceOwner(spaceId);
@@ -97,6 +173,7 @@ service cloud.firestore {
         allow create: if signedIn()
           && (isLegacySpaceOwner(spaceId) || isLegacySpaceMember(spaceId))
           && request.resource.data.spaceId == spaceId
+          && request.resource.data.description is string
           && request.resource.data.taskName is string
           && request.resource.data.taskName.size() > 0
           && request.resource.data.issueTag is string
