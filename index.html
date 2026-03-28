@@ -347,6 +347,7 @@
 
         try {
           const result = await signInWithPopup(auth, provider);
+          const isNewUser = Boolean(result.additionalUserInfo?.isNewUser);
           let profileSaved = true;
 
           try {
@@ -362,7 +363,7 @@
               : "Signed in. Firestore profile sync can be finished from the console setup.",
             profileSaved ? "success" : "neutral"
           );
-          window.location.href = "dashboard.html";
+          window.location.href = isNewUser ? "newuser.html" : "dashboard.html";
         } catch (error) {
           console.error(error);
 
