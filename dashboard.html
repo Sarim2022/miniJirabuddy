@@ -8,14 +8,15 @@
     <style>
       :root {
         color-scheme: light;
-        --nav: #1976f3;
-        --nav-dark: #165fc1;
-        --nav-soft: rgba(255, 255, 255, 0.16);
-        --text: #0d1a2b;
-        --muted: rgba(13, 26, 43, 0.65);
-        --surface: rgba(255, 255, 255, 0.68);
-        --border: rgba(15, 30, 55, 0.08);
-        --shadow: 0 20px 50px rgba(15, 30, 55, 0.12);
+        --nav: #1672f1;
+        --nav-deep: #0f5ecf;
+        --text: #0b1220;
+        --muted: rgba(11, 18, 32, 0.62);
+        --panel: rgba(255, 255, 255, 0.84);
+        --panel-strong: rgba(255, 255, 255, 0.96);
+        --border: rgba(15, 23, 42, 0.08);
+        --shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+        --soft-bg: rgba(248, 251, 255, 0.78);
       }
 
       * {
@@ -33,7 +34,7 @@
         font-family: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
         color: var(--text);
         background:
-          radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), rgba(248, 251, 255, 0.96) 42%, #eef5ff 100%);
+          radial-gradient(circle at top left, rgba(255, 255, 255, 1), rgba(245, 249, 255, 0.98) 38%, #eef4ff 100%);
       }
 
       .app {
@@ -43,18 +44,18 @@
       }
 
       .topbar {
-        height: 78px;
+        position: sticky;
+        top: 0;
+        z-index: 20;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 16px;
-        padding: 0 clamp(16px, 3vw, 32px);
-        background: linear-gradient(90deg, var(--nav-dark), var(--nav));
+        min-height: 76px;
+        padding: 14px clamp(16px, 3vw, 32px);
+        background: linear-gradient(90deg, var(--nav-deep), var(--nav));
         color: #fff;
-        box-shadow: 0 10px 28px rgba(25, 118, 243, 0.24);
-        position: sticky;
-        top: 0;
-        z-index: 5;
+        box-shadow: 0 12px 28px rgba(22, 114, 241, 0.24);
       }
 
       .home-link {
@@ -63,48 +64,45 @@
         gap: 10px;
         color: #fff;
         text-decoration: none;
-        font-weight: 800;
         font-size: 1.08rem;
-        letter-spacing: 0.01em;
+        font-weight: 800;
         white-space: nowrap;
       }
 
-      .home-dot {
+      .home-mark {
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.95);
-        box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.15);
       }
 
-      .actions {
+      .top-actions {
         display: flex;
         align-items: center;
+        justify-content: flex-end;
         gap: 10px;
         flex-wrap: wrap;
-        justify-content: flex-end;
       }
 
       .action-btn,
       .icon-btn {
-        border: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 44px;
+        min-height: 42px;
+        border: 0;
+        border-radius: 999px;
         cursor: pointer;
         transition: transform 0.18s ease, background 0.18s ease, opacity 0.18s ease;
       }
 
       .action-btn {
         padding: 0 16px;
-        border-radius: 999px;
         background: rgba(255, 255, 255, 0.14);
         color: #fff;
         font-weight: 700;
-        letter-spacing: 0.01em;
         border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
       }
 
       .action-btn:hover,
@@ -113,10 +111,19 @@
         background: rgba(255, 255, 255, 0.22);
       }
 
-      .icon-btn {
-        width: 46px;
+      .account {
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.12);
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.18);
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+      }
+
+      .icon-btn {
+        width: 44px;
+        background: rgba(255, 255, 255, 0.14);
         border: 1px solid rgba(255, 255, 255, 0.1);
       }
 
@@ -127,66 +134,369 @@
         object-fit: contain;
       }
 
-      .account {
-        width: 46px;
-        height: 46px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid rgba(255, 255, 255, 0.88);
-        background: rgba(255, 255, 255, 0.18);
-        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+        gap: 18px;
+        padding: 18px;
       }
 
-      .main {
-        display: grid;
-        place-items: center;
-        padding: clamp(20px, 4vw, 48px);
-      }
-
-      .empty-state {
-        width: min(880px, 100%);
-        min-height: min(58svh, 560px);
-        display: grid;
-        place-items: center;
+      .panel {
+        background: var(--panel);
         border: 1px solid var(--border);
-        border-radius: 34px;
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 250, 255, 0.92)),
-          var(--surface);
+        border-radius: 30px;
         box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
       }
 
-      .empty-copy {
-        text-align: center;
-        padding: 20px;
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 18px;
       }
 
-      .empty-copy h1 {
+      .sidebar-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .sidebar-title {
         margin: 0;
-        font-size: clamp(2.5rem, 7vw, 5rem);
-        line-height: 1;
-        letter-spacing: -0.07em;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--muted);
+      }
+
+      .space-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        min-height: 32px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: rgba(22, 114, 241, 0.1);
+        color: var(--nav-deep);
+        font-weight: 800;
+      }
+
+      .space-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .space-item,
+      .space-empty {
+        width: 100%;
+        border: 1px solid transparent;
+        border-radius: 20px;
+        text-align: left;
+      }
+
+      .space-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 15px;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--text);
+        cursor: pointer;
+        transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+      }
+
+      .space-item:hover {
+        transform: translateY(-1px);
+        background: rgba(255, 255, 255, 0.95);
+        border-color: rgba(22, 114, 241, 0.18);
+      }
+
+      .space-item.active {
+        background: linear-gradient(135deg, rgba(22, 114, 241, 0.96), rgba(15, 94, 207, 0.96));
+        color: #fff;
+        box-shadow: 0 12px 24px rgba(22, 114, 241, 0.2);
+      }
+
+      .space-item strong {
+        display: block;
+        font-size: 0.98rem;
+        line-height: 1.35;
+      }
+
+      .space-item span {
+        display: block;
+        font-size: 0.84rem;
+        color: inherit;
+        opacity: 0.8;
+      }
+
+      .space-empty {
+        padding: 14px 15px;
+        background: rgba(255, 255, 255, 0.58);
+        color: var(--muted);
+      }
+
+      .board {
+        display: grid;
+        gap: 18px;
+        padding: 18px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 255, 0.88)),
+          var(--soft-bg);
+      }
+
+      .board-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .board-copy {
+        min-width: 0;
+      }
+
+      .board-kicker {
+        margin: 0 0 8px;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--muted);
+      }
+
+      .board-title {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.6rem);
+        line-height: 0.98;
+        letter-spacing: -0.06em;
         font-weight: 900;
         color: #050505;
       }
 
-      .empty-copy p {
-        margin: 12px 0 0;
+      .board-meta {
+        margin: 10px 0 0;
         color: var(--muted);
-        font-size: 1rem;
         line-height: 1.6;
       }
 
-      @media (max-width: 820px) {
-        .topbar {
-          height: auto;
-          padding-top: 14px;
-          padding-bottom: 14px;
-          align-items: flex-start;
+      .code-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 14px;
+        border-radius: 999px;
+        background: rgba(22, 114, 241, 0.08);
+        border: 1px solid rgba(22, 114, 241, 0.14);
+        color: var(--nav-deep);
+        font-size: 0.92rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        white-space: nowrap;
+      }
+
+      .kanban {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .lane {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 480px;
+        padding: 14px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+      }
+
+      .lane h3 {
+        margin: 0;
+        font-size: 0.86rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+      }
+
+      .lane-empty {
+        margin-top: auto;
+        padding: 16px 14px;
+        border: 1px dashed rgba(15, 23, 42, 0.12);
+        border-radius: 18px;
+        background: rgba(248, 251, 255, 0.9);
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.5;
+      }
+
+      .modal {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+        background: rgba(8, 15, 28, 0.56);
+      }
+
+      .modal[hidden] {
+        display: none;
+      }
+
+      .modal-card {
+        width: min(520px, 100%);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 30px 80px rgba(15, 23, 42, 0.2);
+        padding: 22px;
+      }
+
+      .modal-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .modal-head h2 {
+        margin: 0;
+        font-size: 1.4rem;
+        letter-spacing: -0.04em;
+      }
+
+      .close-btn {
+        width: 40px;
+        height: 40px;
+        border: 0;
+        border-radius: 50%;
+        cursor: pointer;
+        background: rgba(15, 23, 42, 0.06);
+        color: var(--text);
+        font-size: 1.2rem;
+        line-height: 1;
+      }
+
+      .space-form {
+        display: grid;
+        gap: 14px;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      .field label {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .field input {
+        min-height: 48px;
+        padding: 0 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        background: #fff;
+        color: var(--text);
+        font: inherit;
+        outline: none;
+      }
+
+      .field input:focus {
+        border-color: rgba(22, 114, 241, 0.46);
+        box-shadow: 0 0 0 4px rgba(22, 114, 241, 0.12);
+      }
+
+      .field input[readonly] {
+        background: rgba(248, 251, 255, 0.95);
+        color: rgba(11, 18, 32, 0.86);
+      }
+
+      .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 6px;
+      }
+
+      .secondary-btn,
+      .primary-btn {
+        min-height: 46px;
+        padding: 0 18px;
+        border-radius: 999px;
+        border: 0;
+        cursor: pointer;
+        font-weight: 800;
+        transition: transform 0.18s ease, opacity 0.18s ease;
+      }
+
+      .secondary-btn {
+        background: rgba(15, 23, 42, 0.08);
+        color: var(--text);
+      }
+
+      .primary-btn {
+        background: linear-gradient(135deg, var(--nav-deep), var(--nav));
+        color: #fff;
+        box-shadow: 0 14px 28px rgba(22, 114, 241, 0.24);
+      }
+
+      .secondary-btn:hover,
+      .primary-btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 22px;
+        z-index: 50;
+        transform: translateX(-50%);
+        padding: 12px 16px;
+        border-radius: 999px;
+        background: rgba(11, 18, 32, 0.94);
+        color: #fff;
+        box-shadow: var(--shadow);
+        font-size: 0.95rem;
+        white-space: nowrap;
+      }
+
+      .toast[hidden] {
+        display: none;
+      }
+
+      .state-note {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      @media (max-width: 1100px) {
+        .kanban {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 920px) {
+        .workspace {
+          grid-template-columns: 1fr;
         }
 
-        .actions {
-          justify-content: flex-start;
+        .sidebar {
+          order: 2;
+        }
+
+        .board {
+          order: 1;
         }
       }
 
@@ -194,10 +504,9 @@
         .topbar {
           flex-direction: column;
           align-items: flex-start;
-          gap: 12px;
         }
 
-        .actions {
+        .top-actions {
           width: 100%;
           justify-content: space-between;
         }
@@ -206,18 +515,21 @@
           flex: 1 1 auto;
         }
 
-        .account,
-        .icon-btn {
-          flex: 0 0 auto;
+        .workspace {
+          padding: 12px;
+          gap: 12px;
         }
 
-        .main {
-          padding: 14px;
+        .kanban {
+          grid-template-columns: 1fr;
         }
 
-        .empty-state {
-          min-height: calc(100svh - 152px);
-          border-radius: 26px;
+        .board-head {
+          flex-direction: column;
+        }
+
+        .code-pill {
+          align-self: flex-start;
         }
       }
     </style>
@@ -226,11 +538,11 @@
     <div class="app">
       <header class="topbar">
         <a class="home-link" href="dashboard.html" aria-label="MiniJira Home">
-          <span class="home-dot" aria-hidden="true"></span>
+          <span class="home-mark" aria-hidden="true"></span>
           <span>MiniJira Home</span>
         </a>
 
-        <div class="actions" aria-label="dashboard actions">
+        <div class="top-actions" aria-label="dashboard actions">
           <button class="action-btn" id="create-space-btn" type="button">Create Space</button>
           <button class="action-btn" id="create-task-btn" type="button">Create Task</button>
           <img class="account" id="account-image" src="user.png" alt="User account">
@@ -240,15 +552,76 @@
         </div>
       </header>
 
-      <main class="main">
-        <section class="empty-state" aria-label="Home empty state">
-          <div class="empty-copy">
-            <h1>No Space</h1>
-            <p>Your miniJira home is ready. Create a space to begin organizing work.</p>
+      <main class="workspace">
+        <aside class="panel sidebar" aria-label="Spaces sidebar">
+          <div class="sidebar-head">
+            <h2 class="sidebar-title">Spaces</h2>
+            <span class="space-count" id="space-count">0</span>
+          </div>
+          <div class="space-list" id="space-list">
+            <div class="space-empty">No spaces yet. Create your first space.</div>
+          </div>
+        </aside>
+
+        <section class="panel board" aria-label="Kanban board">
+          <div class="board-head">
+            <div class="board-copy">
+              <p class="board-kicker">Workspace</p>
+              <h1 class="board-title" id="board-title">No Space</h1>
+              <p class="board-meta" id="board-meta">Create a space to begin organizing tasks.</p>
+            </div>
+            <div class="code-pill" id="board-key">------</div>
+          </div>
+
+          <div class="kanban">
+            <article class="lane">
+              <h3>Todo</h3>
+              <div class="lane-empty">No tasks yet</div>
+            </article>
+            <article class="lane">
+              <h3>In Progress</h3>
+              <div class="lane-empty">No tasks yet</div>
+            </article>
+            <article class="lane">
+              <h3>Review</h3>
+              <div class="lane-empty">No tasks yet</div>
+            </article>
+            <article class="lane">
+              <h3>Done</h3>
+              <div class="lane-empty">No tasks yet</div>
+            </article>
           </div>
         </section>
       </main>
     </div>
+
+    <div class="modal" id="space-modal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="space-modal-title">
+        <div class="modal-head">
+          <h2 id="space-modal-title">Create Space</h2>
+          <button class="close-btn" id="close-space-modal" type="button" aria-label="Close">X</button>
+        </div>
+
+        <form class="space-form" id="space-form">
+          <div class="field">
+            <label for="project-name">Project name</label>
+            <input id="project-name" name="project-name" type="text" placeholder="Enter project name" required maxlength="60">
+          </div>
+
+          <div class="field">
+            <label for="project-key">Project key</label>
+            <input id="project-key" name="project-key" type="text" readonly>
+          </div>
+
+          <div class="form-actions">
+            <button class="secondary-btn" id="cancel-space" type="button">Cancel</button>
+            <button class="primary-btn" id="submit-space" type="submit">Create Space</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" hidden></div>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
@@ -257,6 +630,15 @@
         onAuthStateChanged,
         signOut
       } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+      import {
+        collection,
+        addDoc,
+        getFirestore,
+        onSnapshot,
+        query,
+        where,
+        serverTimestamp
+      } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyC5tCamhw8qGI4apSurMZpXimwsMP4D9AI",
@@ -269,13 +651,171 @@
 
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
+      const db = getFirestore(app);
 
       const accountImage = document.getElementById("account-image");
       const logoutBtn = document.getElementById("logout-btn");
+      const createSpaceBtn = document.getElementById("create-space-btn");
+      const createTaskBtn = document.getElementById("create-task-btn");
+      const spaceCount = document.getElementById("space-count");
+      const spaceList = document.getElementById("space-list");
+      const boardTitle = document.getElementById("board-title");
+      const boardMeta = document.getElementById("board-meta");
+      const boardKey = document.getElementById("board-key");
+      const spaceModal = document.getElementById("space-modal");
+      const closeSpaceModal = document.getElementById("close-space-modal");
+      const cancelSpace = document.getElementById("cancel-space");
+      const spaceForm = document.getElementById("space-form");
+      const projectNameInput = document.getElementById("project-name");
+      const projectKeyInput = document.getElementById("project-key");
+      const submitSpace = document.getElementById("submit-space");
+      const toast = document.getElementById("toast");
 
-      function syncUser(user) {
-        accountImage.src = "user.png";
-        accountImage.alt = user.displayName ? `${user.displayName} account image` : "User account";
+      let currentUser = null;
+      let spacesUnsubscribe = null;
+      let spaces = [];
+      let selectedSpaceId = null;
+      let toastTimer = null;
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.hidden = false;
+
+        if (toastTimer) {
+          window.clearTimeout(toastTimer);
+        }
+
+        toastTimer = window.setTimeout(() => {
+          toast.hidden = true;
+        }, 2400);
+      }
+
+      function generateKey() {
+        const value = Math.floor(Math.random() * 1000000);
+        return String(value).padStart(6, "0");
+      }
+
+      function openSpaceModal() {
+        spaceForm.reset();
+        projectKeyInput.value = generateKey();
+        spaceModal.hidden = false;
+        window.setTimeout(() => projectNameInput.focus(), 0);
+      }
+
+      function closeModal() {
+        spaceModal.hidden = true;
+        spaceForm.reset();
+      }
+
+      function getSelectedSpace() {
+        return spaces.find((space) => space.id === selectedSpaceId) || null;
+      }
+
+      function renderSpaces() {
+        spaceCount.textContent = String(spaces.length);
+        spaceList.replaceChildren();
+
+        if (!spaces.length) {
+          const empty = document.createElement("div");
+          empty.className = "space-empty";
+          empty.textContent = "No spaces yet. Create your first space.";
+          spaceList.appendChild(empty);
+          return;
+        }
+
+        for (const space of spaces) {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = `space-item${space.id === selectedSpaceId ? " active" : ""}`;
+
+          const info = document.createElement("span");
+          const title = document.createElement("strong");
+          title.textContent = space.projectName || "Untitled space";
+          const key = document.createElement("span");
+          key.textContent = space.projectKey ? `Key ${space.projectKey}` : "No key";
+          info.append(title, key);
+
+          const action = document.createElement("span");
+          action.textContent = "Open";
+
+          item.append(info, action);
+          item.addEventListener("click", () => {
+            selectedSpaceId = space.id;
+            renderSpaces();
+            renderBoard();
+          });
+
+          spaceList.appendChild(item);
+        }
+      }
+
+      function renderBoard() {
+        const space = getSelectedSpace();
+
+        if (!space) {
+          boardTitle.textContent = "No Space";
+          boardMeta.textContent = "Create a space to begin organizing tasks.";
+          boardKey.textContent = "------";
+          return;
+        }
+
+        boardTitle.textContent = space.projectName || "Untitled space";
+        boardMeta.textContent = `Project key ${space.projectKey} - ready for kanban tasks.`;
+        boardKey.textContent = space.projectKey || "------";
+      }
+
+      function renderWorkspace() {
+        renderSpaces();
+        renderBoard();
+      }
+
+      async function createSpace(projectName, projectKey) {
+        const payload = {
+          projectName,
+          projectKey,
+          ownerUid: currentUser.uid,
+          memberUids: [currentUser.uid],
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          clientCreatedAt: Date.now()
+        };
+
+        const ref = await addDoc(collection(db, "spaces"), payload);
+
+        return { id: ref.id, ...payload };
+      }
+
+      function startSpacesListener(uid) {
+        if (spacesUnsubscribe) {
+          spacesUnsubscribe();
+        }
+
+        const queryRef = query(
+          collection(db, "spaces"),
+          where("memberUids", "array-contains", uid)
+        );
+        spacesUnsubscribe = onSnapshot(
+          queryRef,
+          { includeMetadataChanges: true },
+          (snapshot) => {
+            const nextSpaces = snapshot.docs
+              .map((spaceDoc) => ({ id: spaceDoc.id, ...spaceDoc.data() }))
+              .filter((space) => Array.isArray(space.memberUids) && space.memberUids.includes(uid))
+              .sort((a, b) => (b.clientCreatedAt || 0) - (a.clientCreatedAt || 0));
+
+            spaces = nextSpaces;
+
+            if (spaces.length && !spaces.some((space) => space.id === selectedSpaceId)) {
+              selectedSpaceId = spaces[0].id;
+            }
+
+            renderWorkspace();
+          },
+          (error) => {
+            console.error("Space listener failed:", error);
+            showToast("Could not load spaces from Firebase.");
+          }
+        );
       }
 
       onAuthStateChanged(auth, (user) => {
@@ -284,7 +824,70 @@
           return;
         }
 
-        syncUser(user);
+        currentUser = user;
+        accountImage.src = "user.png";
+        accountImage.alt = user.displayName ? `${user.displayName} account image` : "User account";
+        startSpacesListener(user.uid);
+      });
+
+      createSpaceBtn.addEventListener("click", openSpaceModal);
+
+      createTaskBtn.addEventListener("click", () => {
+        const space = getSelectedSpace();
+        showToast(space ? `Task creation for "${space.projectName}" comes next.` : "Create a space first.");
+      });
+
+      closeSpaceModal.addEventListener("click", closeModal);
+      cancelSpace.addEventListener("click", closeModal);
+
+      spaceModal.addEventListener("click", (event) => {
+        if (event.target === spaceModal) {
+          closeModal();
+        }
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !spaceModal.hidden) {
+          closeModal();
+        }
+      });
+
+      spaceForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        if (!currentUser) {
+          return;
+        }
+
+        const projectName = projectNameInput.value.trim();
+
+        if (!projectName) {
+          showToast("Please enter a project name.");
+          projectNameInput.focus();
+          return;
+        }
+
+        submitSpace.disabled = true;
+
+        try {
+          const projectKey = projectKeyInput.value || generateKey();
+          projectKeyInput.value = projectKey;
+          const createdSpace = await createSpace(projectName, projectKey);
+
+          spaces = [
+            createdSpace,
+            ...spaces.filter((space) => space.id !== createdSpace.id)
+          ];
+          selectedSpaceId = createdSpace.id;
+          closeModal();
+          showToast(`Space "${projectName}" created.`);
+          renderWorkspace();
+        } catch (error) {
+          console.error(error);
+          showToast("Could not create this space right now.");
+        } finally {
+          submitSpace.disabled = false;
+        }
       });
 
       logoutBtn.addEventListener("click", async () => {
@@ -295,9 +898,12 @@
           window.location.href = "index.html";
         } catch (error) {
           console.error(error);
+          showToast("Could not sign out right now.");
           logoutBtn.disabled = false;
         }
       });
+
+      renderWorkspace();
     </script>
   </body>
 </html>
