@@ -773,7 +773,6 @@
 
           <div class="project-toolbar" aria-label="project actions">
             <div class="project-actions">
-              <button class="project-btn-primary" id="create-jira-btn" type="button">Create Jira</button>
               <button class="project-btn" id="share-btn" type="button">Share</button>
               <button class="project-btn" id="see-teams-btn" type="button">See Teams</button>
               <button class="project-btn" id="backlog-btn" type="button">Backlog</button>
@@ -843,7 +842,7 @@
     <div class="modal" id="task-modal" hidden>
       <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
         <div class="modal-head">
-          <h2 id="task-modal-title">Create Jira Task</h2>
+          <h2 id="task-modal-title">Create Task</h2>
           <button class="close-btn" id="close-task-modal" type="button" aria-label="Close">X</button>
         </div>
 
@@ -851,6 +850,11 @@
           <div class="field">
             <label for="task-name">Task name</label>
             <input id="task-name" name="task-name" type="text" placeholder="Enter task name" required maxlength="80">
+          </div>
+
+          <div class="field">
+            <label for="task-space">Space</label>
+            <select id="task-space" name="task-space" required></select>
           </div>
 
           <div class="field">
@@ -888,7 +892,7 @@
 
           <div class="form-actions">
             <button class="secondary-btn" id="cancel-task" type="button">Cancel</button>
-            <button class="primary-btn" id="submit-task" type="submit">Create Jira Task</button>
+            <button class="primary-btn" id="submit-task" type="submit">Create Task</button>
           </div>
         </form>
       </div>
@@ -936,7 +940,6 @@
       const logoutBtn = document.getElementById("logout-btn");
       const createSpaceBtn = document.getElementById("create-space-btn");
       const createTaskBtn = document.getElementById("create-task-btn");
-      const createJiraBtn = document.getElementById("create-jira-btn");
       const shareBtn = document.getElementById("share-btn");
       const seeTeamsBtn = document.getElementById("see-teams-btn");
       const backlogBtn = document.getElementById("backlog-btn");
@@ -959,6 +962,7 @@
       const cancelTask = document.getElementById("cancel-task");
       const taskForm = document.getElementById("task-form");
       const taskNameInput = document.getElementById("task-name");
+      const taskSpaceInput = document.getElementById("task-space");
       const taskIssueTagInput = document.getElementById("task-issue-tag");
       const taskPriorityInput = document.getElementById("task-priority");
       const taskStatusInput = document.getElementById("task-status");
@@ -1077,6 +1081,7 @@
           selectedSpaceKey = null;
         }
 
+        renderTaskSpaceOptions();
         renderWorkspace();
       }
 
@@ -1191,6 +1196,41 @@
         return "medium";
       }
 
+      function renderTaskSpaceOptions() {
+        if (!taskSpaceInput) {
+          return;
+        }
+
+        const desiredValue = taskSpaceInput.value || selectedSpaceKey || (spaces[0] && spaces[0].key) || "";
+
+        taskSpaceInput.replaceChildren();
+
+        if (!spaces.length) {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "Create a space first";
+          option.selected = true;
+          taskSpaceInput.appendChild(option);
+          taskSpaceInput.disabled = true;
+          return;
+        }
+
+        taskSpaceInput.disabled = false;
+
+        for (const space of spaces) {
+          const option = document.createElement("option");
+          option.value = space.key;
+          option.textContent = `${space.projectName || "Untitled space"}${space.projectKey ? ` - ${space.projectKey}` : ""}`;
+          taskSpaceInput.appendChild(option);
+        }
+
+        if (spaces.some((space) => space.key === desiredValue)) {
+          taskSpaceInput.value = desiredValue;
+        } else {
+          taskSpaceInput.value = spaces[0].key;
+        }
+      }
+
       function getTaskLaneElement(status) {
         const normalizedStatus = normalizeTaskStatus(status);
 
@@ -1210,12 +1250,16 @@
       }
 
       function openTaskModal() {
-        const space = requireSelectedSpace("Create a space first.");
-        if (!space) {
+        if (!spaces.length) {
+          showToast("Create a space first.");
           return;
         }
 
         taskForm.reset();
+        renderTaskSpaceOptions();
+        taskSpaceInput.value = selectedSpaceKey && spaces.some((space) => space.key === selectedSpaceKey)
+          ? selectedSpaceKey
+          : spaces[0].key;
         taskStatusInput.value = "todo";
         taskPriorityInput.value = "medium";
         taskModal.hidden = false;
@@ -1475,10 +1519,6 @@
         openTaskModal();
       });
 
-      createJiraBtn.addEventListener("click", () => {
-        openTaskModal();
-      });
-
       shareBtn.addEventListener("click", shareSelectedSpace);
 
       seeTeamsBtn.addEventListener("click", showTeamSummary);
@@ -1515,7 +1555,7 @@
               return;
             }
 
-            showToast(`${space.projectName || "Untitled space"} · Key ${space.projectKey || "------"}`);
+            showToast(`${space.projectName || "Untitled space"} - Key ${space.projectKey || "------"}`);
             return;
           }
 
