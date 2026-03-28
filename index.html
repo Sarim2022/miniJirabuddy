@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="miniJira welcome screen">
+    <title>Welcome to miniJira</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --text: #f8fbff;
+        --soft: rgba(248, 251, 255, 0.76);
+        --glass: rgba(10, 16, 32, 0.5);
+        --border: rgba(255, 255, 255, 0.12);
+        --shadow: 0 30px 90px rgba(0, 0, 0, 0.4);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100svh;
+        overflow-x: hidden;
+        font-family: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
+        color: var(--text);
+        background: url("splash.jpg") center center / cover no-repeat;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: rgba(6, 10, 18, 0.3);
+      }
+
+      .frame {
+        position: relative;
+        z-index: 1;
+        min-height: 100svh;
+        display: grid;
+        place-items: center;
+        padding: clamp(16px, 4vw, 40px);
+      }
+
+      .card {
+        width: min(560px, 100%);
+        padding: clamp(28px, 5vw, 56px);
+        border-radius: 34px;
+        border: 1px solid var(--border);
+        background: var(--glass);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+        text-align: center;
+        animation: rise 0.7s ease-out both;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #d8ecff;
+        font-size: 0.84rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 18px 0 14px;
+        font-size: clamp(2.4rem, 6vw, 4.8rem);
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+      }
+
+      .copy {
+        margin: 0 auto 28px;
+        max-width: 34ch;
+        color: var(--soft);
+        font-size: clamp(1rem, 1.9vw, 1.12rem);
+        line-height: 1.7;
+      }
+
+      .google-btn {
+        appearance: none;
+        border: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 24px;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #1a2438;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 700;
+        box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+      }
+
+      .google-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 22px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .google-btn:disabled {
+        cursor: progress;
+        opacity: 0.76;
+      }
+
+      .google-mark {
+        position: relative;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: conic-gradient(#4285f4 0 25%, #34a853 25% 50%, #fbbc05 50% 75%, #ea4335 75% 100%);
+        flex: 0 0 auto;
+      }
+
+      .google-mark::after {
+        content: "";
+        position: absolute;
+        inset: 5px;
+        border-radius: 50%;
+        background: #fff;
+      }
+
+      .auth-state {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 18px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        font-size: 0.92rem;
+      }
+
+      .auth-state[hidden] {
+        display: none;
+      }
+
+      .auth-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      .helper {
+        margin: 16px 0 0;
+        min-height: 1.4em;
+        color: rgba(255, 255, 255, 0.68);
+        font-size: 0.95rem;
+      }
+
+      .helper[data-tone="error"] {
+        color: #ffb9b9;
+      }
+
+      .helper[data-tone="success"] {
+        color: #caffdf;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(24px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @media (max-width: 560px) {
+        .card {
+          padding: 24px 18px;
+        }
+
+        .google-btn {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="frame">
+      <section class="card" aria-label="Welcome to miniJira">
+        <span class="brand">miniJira</span>
+        <h1>Welcome to miniJira</h1>
+        <p class="copy">
+          A simple place to organize tasks, manage code work, and keep your team
+          moving together.
+        </p>
+        <button class="google-btn" id="google-btn" type="button" aria-label="Continue with Google">
+          <span class="google-mark" aria-hidden="true"></span>
+          <span id="google-btn-label">Continue with Google</span>
+        </button>
+        <div class="auth-state" id="auth-state" hidden>
+          <img id="auth-avatar" class="auth-avatar" alt="" hidden>
+          <span id="auth-state-text"></span>
+        </div>
+        <p class="helper" id="helper-text" data-tone="neutral">
+          Google sign-in will create a miniJira account if this is your first time.
+        </p>
+      </section>
+    </main>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+      import {
+        GoogleAuthProvider,
+        getAuth,
+        onAuthStateChanged,
+        signInWithPopup
+      } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+      import {
+        doc,
+        getDoc,
+        getFirestore,
+        serverTimestamp,
+        setDoc
+      } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyC5tCamhw8qGI4apSurMZpXimwsMP4D9AI",
+        authDomain: "minijiratask.firebaseapp.com",
+        projectId: "minijiratask",
+        storageBucket: "minijiratask.firebasestorage.app",
+        messagingSenderId: "378857537733",
+        appId: "1:378857537733:web:0cf3cac222a9951c3fb0ac"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+
+      const googleBtn = document.getElementById("google-btn");
+      const googleBtnLabel = document.getElementById("google-btn-label");
+      const helperText = document.getElementById("helper-text");
+      const authState = document.getElementById("auth-state");
+      const authStateText = document.getElementById("auth-state-text");
+      const authAvatar = document.getElementById("auth-avatar");
+
+      function setHelper(text, tone = "neutral") {
+        helperText.textContent = text;
+        helperText.dataset.tone = tone;
+      }
+
+      async function saveUserProfile(user) {
+        const userRef = doc(db, "users", user.uid);
+        const snapshot = await getDoc(userRef);
+        const profile = {
+          uid: user.uid,
+          displayName: user.displayName || "",
+          email: user.email || "",
+          photoURL: user.photoURL || "",
+          providerId: user.providerData?.[0]?.providerId || "google.com",
+          lastLoginAt: serverTimestamp()
+        };
+
+        if (!snapshot.exists()) {
+          profile.createdAt = serverTimestamp();
+          profile.role = "member";
+          profile.teamId = "";
+        }
+
+        await setDoc(userRef, profile, { merge: true });
+      }
+
+      function showSignedOutState() {
+        googleBtn.disabled = false;
+        googleBtnLabel.textContent = "Continue with Google";
+        authState.hidden = true;
+        authAvatar.hidden = true;
+        setHelper("Google sign-in will create a miniJira account if this is your first time.");
+      }
+
+      function showSignedInState(user) {
+        googleBtn.disabled = false;
+        googleBtnLabel.textContent = "Continue to miniJira";
+        authState.hidden = false;
+        authStateText.textContent = user.displayName || user.email || "Signed in";
+
+        if (user.photoURL) {
+          authAvatar.hidden = false;
+          authAvatar.src = user.photoURL;
+          authAvatar.alt = user.displayName ? `${user.displayName} avatar` : "Google account avatar";
+        } else {
+          authAvatar.hidden = true;
+          authAvatar.removeAttribute("src");
+          authAvatar.alt = "";
+        }
+
+        setHelper("Your Google account is connected. Continue to the workspace when you are ready.", "success");
+      }
+
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          showSignedInState(user);
+        } else {
+          showSignedOutState();
+        }
+      });
+
+      googleBtn.addEventListener("click", async () => {
+        if (auth.currentUser) {
+          window.location.href = "dashboard.html";
+          return;
+        }
+
+        googleBtn.disabled = true;
+        setHelper("Opening Google sign-in...", "neutral");
+
+        try {
+          const result = await signInWithPopup(auth, provider);
+          let profileSaved = true;
+
+          try {
+            await saveUserProfile(result.user);
+          } catch (profileError) {
+            profileSaved = false;
+            console.warn("Firestore profile save failed:", profileError);
+          }
+
+          setHelper(
+            profileSaved
+              ? "Signed in successfully. Loading your workspace..."
+              : "Signed in. Firestore profile sync can be finished from the console setup.",
+            profileSaved ? "success" : "neutral"
+          );
+          window.location.href = "dashboard.html";
+        } catch (error) {
+          console.error(error);
+
+          if (error?.code === "auth/popup-closed-by-user") {
+            setHelper("Sign-in was closed before it finished.", "neutral");
+          } else if (error?.code === "auth/popup-blocked") {
+            setHelper("The popup was blocked. Allow popups and try again.", "error");
+          } else if (error?.code === "auth/unauthorized-domain") {
+            setHelper("Add localhost or your hosting domain to Firebase Auth authorized domains.", "error");
+          } else {
+            setHelper("Could not sign in right now. Check Firebase Auth setup and try again.", "error");
+          }
+        } finally {
+          googleBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

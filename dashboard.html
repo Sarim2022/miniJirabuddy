@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="miniJira dashboard">
+    <title>miniJira Dashboard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg-1: #050814;
+        --bg-2: #111c33;
+        --panel: rgba(12, 18, 34, 0.82);
+        --panel-strong: rgba(17, 25, 44, 0.96);
+        --line: rgba(255, 255, 255, 0.1);
+        --text: #f5f8ff;
+        --soft: rgba(245, 248, 255, 0.72);
+        --muted: rgba(245, 248, 255, 0.56);
+        --accent: #4cb3ff;
+        --accent-2: #ff8a4c;
+        --shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100svh;
+        overflow-x: hidden;
+        font-family: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 12% 18%, rgba(76, 179, 255, 0.2), transparent 26%),
+          radial-gradient(circle at 88% 80%, rgba(255, 138, 76, 0.16), transparent 24%),
+          linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 54%, var(--bg-1) 100%);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          linear-gradient(rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
+          radial-gradient(circle at top center, rgba(255, 255, 255, 0.05), transparent 36%);
+        pointer-events: none;
+      }
+
+      .shell {
+        position: relative;
+        z-index: 1;
+        min-height: 100svh;
+        display: grid;
+        grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+        gap: clamp(16px, 3vw, 26px);
+        padding: clamp(16px, 4vw, 40px);
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 32px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+      }
+
+      .hero {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 18px;
+        padding: clamp(24px, 4vw, 48px);
+        background:
+          linear-gradient(180deg, rgba(17, 25, 44, 0.96), rgba(12, 18, 34, 0.96)),
+          var(--panel-strong);
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        gap: 10px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.11);
+        background: rgba(255, 255, 255, 0.07);
+        color: #d8ecff;
+        font-size: 0.84rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-size: clamp(2.4rem, 5vw, 4.6rem);
+        line-height: 0.96;
+        letter-spacing: -0.06em;
+        max-width: 12ch;
+      }
+
+      .hero p {
+        margin: 0;
+        max-width: 42ch;
+        color: var(--soft);
+        line-height: 1.7;
+        font-size: 1rem;
+      }
+
+      .profile {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .avatar {
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.1);
+        flex: 0 0 auto;
+      }
+
+      .profile strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 1rem;
+      }
+
+      .profile span {
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.45;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 4px;
+      }
+
+      .button,
+      .link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 18px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 700;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+      }
+
+      .button {
+        border: 0;
+        cursor: pointer;
+        color: #111827;
+        background: #ffffff;
+        box-shadow: 0 18px 34px rgba(0, 0, 0, 0.2);
+      }
+
+      .link {
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .button:hover,
+      .link:hover {
+        transform: translateY(-2px);
+      }
+
+      .board {
+        padding: clamp(18px, 3vw, 28px);
+        display: grid;
+        gap: 18px;
+      }
+
+      .board-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .board-head h2 {
+        margin: 0;
+        font-size: 1.35rem;
+        letter-spacing: -0.03em;
+      }
+
+      .board-head p {
+        margin: 6px 0 0;
+        color: var(--soft);
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 14px;
+        min-height: 38px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-size: 0.9rem;
+        white-space: nowrap;
+      }
+
+      .columns {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .lane {
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .lane h3 {
+        margin: 0;
+        font-size: 0.9rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #dfe8ff;
+      }
+
+      .task {
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(8, 12, 20, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+      }
+
+      .task p {
+        margin: 0 0 8px;
+        font-size: 0.96rem;
+        line-height: 1.4;
+      }
+
+      .task span {
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .task.todo {
+        box-shadow: inset 0 0 0 1px rgba(76, 179, 255, 0.14);
+      }
+
+      .task.progress {
+        box-shadow: inset 0 0 0 1px rgba(255, 138, 76, 0.14);
+      }
+
+      .task.done {
+        box-shadow: inset 0 0 0 1px rgba(90, 220, 154, 0.14);
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--soft);
+        font-size: 0.92rem;
+      }
+
+      .status::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 6px rgba(76, 179, 255, 0.12);
+      }
+
+      .status[data-state="offline"]::before {
+        background: var(--accent-2);
+        box-shadow: 0 0 0 6px rgba(255, 138, 76, 0.12);
+      }
+
+      @media (max-width: 980px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .columns {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .shell {
+          padding: 14px;
+        }
+
+        .hero,
+        .board {
+          padding: 20px;
+        }
+
+        .board-head {
+          flex-direction: column;
+        }
+
+        .button,
+        .link {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="panel hero" aria-label="Signed in user overview">
+        <span class="brand">miniJira</span>
+        <h1 id="welcome-title">Loading your workspace...</h1>
+        <p id="welcome-copy">We are checking your Google sign-in so we can load your account.</p>
+
+        <div class="profile" id="profile-card">
+          <img class="avatar" id="profile-avatar" alt="" hidden>
+          <div>
+            <strong id="profile-name">No user loaded yet</strong>
+            <span id="profile-email">Waiting for Firebase Auth.</span>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="button" id="signout-btn" type="button">Sign out</button>
+          <a class="link" href="index.html">Back to splash</a>
+        </div>
+
+        <div class="status" id="auth-status" data-state="online">Connecting to Firebase Auth</div>
+      </section>
+
+      <section class="panel board" aria-label="Board preview">
+        <div class="board-head">
+          <div>
+            <h2>Board preview</h2>
+            <p>A starter view for your team collaboration flow once tasks are wired up.</p>
+          </div>
+          <div class="pill" id="team-pill">Personal workspace</div>
+        </div>
+
+        <div class="columns">
+          <section class="lane" aria-labelledby="todo-title">
+            <h3 id="todo-title">Todo</h3>
+            <article class="task todo">
+              <p>Connect tasks to Firestore collections.</p>
+              <span>Ready for implementation</span>
+            </article>
+            <article class="task todo">
+              <p>Define team membership and permissions.</p>
+              <span>Planning</span>
+            </article>
+          </section>
+
+          <section class="lane" aria-labelledby="progress-title">
+            <h3 id="progress-title">In progress</h3>
+            <article class="task progress">
+              <p>Google login and user profile sync.</p>
+              <span>Firebase Auth + Firestore</span>
+            </article>
+            <article class="task progress">
+              <p>Responsive workspace shell.</p>
+              <span>Desktop and mobile</span>
+            </article>
+          </section>
+
+          <section class="lane" aria-labelledby="done-title">
+            <h3 id="done-title">Done</h3>
+            <article class="task done">
+              <p>Splash screen and entry flow.</p>
+              <span>Connected</span>
+            </article>
+            <article class="task done">
+              <p>Starter Firestore user profile model.</p>
+              <span>Saved on sign-in</span>
+            </article>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signOut
+      } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyC5tCamhw8qGI4apSurMZpXimwsMP4D9AI",
+        authDomain: "minijiratask.firebaseapp.com",
+        projectId: "minijiratask",
+        storageBucket: "minijiratask.firebasestorage.app",
+        messagingSenderId: "378857537733",
+        appId: "1:378857537733:web:0cf3cac222a9951c3fb0ac"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+
+      const welcomeTitle = document.getElementById("welcome-title");
+      const welcomeCopy = document.getElementById("welcome-copy");
+      const profileAvatar = document.getElementById("profile-avatar");
+      const profileName = document.getElementById("profile-name");
+      const profileEmail = document.getElementById("profile-email");
+      const authStatus = document.getElementById("auth-status");
+      const teamPill = document.getElementById("team-pill");
+      const signoutBtn = document.getElementById("signout-btn");
+
+      function updateSignedInUI(user) {
+        welcomeTitle.textContent = `Welcome, ${user.displayName || "team member"}`;
+        welcomeCopy.textContent = "You are signed in with Google. This page is ready for your miniJira workspace.";
+        profileName.textContent = user.displayName || "Google account";
+        profileEmail.textContent = user.email || "No email available";
+        authStatus.textContent = "Connected to Firebase Auth";
+        authStatus.dataset.state = "online";
+        teamPill.textContent = "Signed in";
+
+        if (user.photoURL) {
+          profileAvatar.hidden = false;
+          profileAvatar.src = user.photoURL;
+          profileAvatar.alt = user.displayName ? `${user.displayName} avatar` : "Google account avatar";
+        } else {
+          profileAvatar.hidden = true;
+          profileAvatar.removeAttribute("src");
+          profileAvatar.alt = "";
+        }
+      }
+
+      onAuthStateChanged(auth, (user) => {
+        if (!user) {
+          window.location.href = "index.html";
+          return;
+        }
+
+        updateSignedInUI(user);
+      });
+
+      signoutBtn.addEventListener("click", async () => {
+        signoutBtn.disabled = true;
+
+        try {
+          await signOut(auth);
+          window.location.href = "index.html";
+        } catch (error) {
+          console.error(error);
+          authStatus.textContent = "Could not sign out right now.";
+          authStatus.dataset.state = "offline";
+          signoutBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
