@@ -150,6 +150,10 @@ function normalizeStatus(value) {
   return "todo";
 }
 
+function getTaskStatusValue() {
+  return taskStatusInput?.value || "todo";
+}
+
 function setAssigneeStatus(message = "", tone = "neutral") {
   if (!taskAssigneeStatus) return;
   taskAssigneeStatus.textContent = message;
@@ -206,9 +210,9 @@ function openTaskModal() {
   if (!taskModal || !taskForm) return;
   taskForm.reset();
   clearLookupState();
-  taskStatusInput.value = "todo";
+  if (taskStatusInput) taskStatusInput.value = "todo";
   taskModal.hidden = false;
-  window.setTimeout(() => taskTitleInput.focus(), 0);
+  window.setTimeout(() => taskTitleInput?.focus(), 0);
 }
 
 function normalizeProjectDoc(docSnap) {
@@ -761,14 +765,14 @@ taskForm?.addEventListener("submit", async (event) => {
     showToast("Create a project first.");
     return;
   }
-  const title = taskTitleInput.value.trim();
+  const title = (taskTitleInput?.value || "").trim();
   if (!title) {
     showToast("Please enter a task title.");
-    taskTitleInput.focus();
+    taskTitleInput?.focus();
     return;
   }
 
-  const email = taskAssigneeInput.value.trim();
+  const email = (taskAssigneeInput?.value || "").trim();
   let assignedTo = null;
   let visibility = "project";
   let message = "Task created.";
@@ -802,8 +806,8 @@ taskForm?.addEventListener("submit", async (event) => {
     await createTask({
       projectId: project.projectId,
       title,
-      description: taskDescriptionInput.value.trim(),
-      status: taskStatusInput.value,
+      description: (taskDescriptionInput?.value || "").trim(),
+      status: getTaskStatusValue(),
       assignedTo,
       createdBy: currentUser.uid,
       visibility
