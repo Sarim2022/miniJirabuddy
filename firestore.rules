@@ -61,6 +61,8 @@ service cloud.firestore {
 
           allow create: if signedIn()
             && (request.auth.uid == userId || isUserSpaceMember(userId, spaceId))
+            && request.resource.data.spaceId == spaceId
+            && request.resource.data.spaceOwnerUid == userId
             && request.resource.data.taskName is string
             && request.resource.data.taskName.size() > 0
             && request.resource.data.issueTag is string
@@ -91,6 +93,7 @@ service cloud.firestore {
         allow read: if isLegacySpaceOwner(spaceId) || isLegacySpaceMember(spaceId);
         allow create: if signedIn()
           && (isLegacySpaceOwner(spaceId) || isLegacySpaceMember(spaceId))
+          && request.resource.data.spaceId == spaceId
           && request.resource.data.taskName is string
           && request.resource.data.taskName.size() > 0
           && request.resource.data.issueTag is string

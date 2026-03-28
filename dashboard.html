@@ -1636,10 +1636,10 @@
           return;
         }
 
-        const space = getSelectedSpace();
+        const taskSpace = spaces.find((space) => space.key === taskSpaceInput.value) || null;
 
-        if (!space) {
-          showToast("Create a space first.");
+        if (!taskSpace) {
+          showToast("Select a space first.");
           return;
         }
 
@@ -1653,13 +1653,14 @@
 
         const payload = {
           taskName,
+          spaceId: taskSpace.id,
+          spaceKey: taskSpace.projectKey || "",
+          spaceName: taskSpace.projectName || "",
+          spaceOwnerUid: taskSpace.ownerUid || currentUser.uid,
           issueTag: taskIssueTagInput.value,
           priority: taskPriorityInput.value,
           status: normalizeTaskStatus(taskStatusInput.value),
           assignee: taskAssigneeInput.value.trim(),
-          spaceId: space.id,
-          spaceKey: space.projectKey || "",
-          spaceName: space.projectName || "",
           ownerUid: currentUser.uid,
           createdByUid: currentUser.uid,
           createdAt: serverTimestamp(),
@@ -1671,9 +1672,11 @@
 
         try {
           await addDoc(
-            collection(db, "users", space.ownerUid || currentUser.uid, "spaces", space.id, "tasks"),
+            collection(db, "users", taskSpace.ownerUid || currentUser.uid, "spaces", taskSpace.id, "tasks"),
             payload
           );
+          selectedSpaceKey = taskSpace.key;
+          renderWorkspace();
           closeTaskModal();
           showToast(`Task "${taskName}" created.`);
         } catch (error) {
