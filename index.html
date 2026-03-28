@@ -257,6 +257,7 @@
       const authState = document.getElementById("auth-state");
       const authStateText = document.getElementById("auth-state-text");
       const authAvatar = document.getElementById("auth-avatar");
+      const currentOrigin = window.location.origin === "null" ? "file:// or an unsupported local origin" : window.location.origin;
 
       function setHelper(text, tone = "neutral") {
         helperText.textContent = text;
@@ -292,6 +293,13 @@
         setHelper("Google sign-in will create a miniJira account if this is your first time.");
       }
 
+      function showOriginWarning() {
+        setHelper(
+          `This page is running from ${currentOrigin}. Firebase Google sign-in needs http://localhost, Firebase Hosting, or another authorized domain.`,
+          "error"
+        );
+      }
+
       function showSignedInState(user) {
         googleBtn.disabled = false;
         googleBtnLabel.textContent = "Continue to miniJira";
@@ -319,7 +327,16 @@
         }
       });
 
+      if (window.location.protocol === "file:") {
+        showOriginWarning();
+      }
+
       googleBtn.addEventListener("click", async () => {
+        if (window.location.protocol === "file:") {
+          showOriginWarning();
+          return;
+        }
+
         if (auth.currentUser) {
           window.location.href = "dashboard.html";
           return;
@@ -354,7 +371,10 @@
           } else if (error?.code === "auth/popup-blocked") {
             setHelper("The popup was blocked. Allow popups and try again.", "error");
           } else if (error?.code === "auth/unauthorized-domain") {
-            setHelper("Add localhost or your hosting domain to Firebase Auth authorized domains.", "error");
+            setHelper(
+              `Add ${window.location.hostname || "localhost"} or your hosting domain to Firebase Auth authorized domains, then reload the page.`,
+              "error"
+            );
           } else {
             setHelper("Could not sign in right now. Check Firebase Auth setup and try again.", "error");
           }
