@@ -746,7 +746,17 @@ projectForm?.addEventListener("submit", async (event) => {
   try {
     const code = projectCodeInput.value || generateProjectCode();
     const created = await createProject(name, code);
-    selectedProjectId = created.projectId;
+    const optimisticProject = {
+      id: created.projectId,
+      projectId: created.projectId,
+      name,
+      ownerId: currentUser.uid,
+      members: [currentUser.uid],
+      projectKey: code,
+      clientCreatedAt: created.clientCreatedAt || Date.now()
+    };
+    ownedProjects = [optimisticProject, ...ownedProjects.filter((project) => project.projectId !== optimisticProject.projectId)];
+    selectedProjectId = optimisticProject.projectId;
     syncProjects();
     closeProjectModal();
     showToast(`Project "${name}" created.`);
