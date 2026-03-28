@@ -395,6 +395,38 @@
         color: var(--text);
       }
 
+      .task-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .task-arrow-btn {
+        width: 34px;
+        height: 34px;
+        border: 1px solid rgba(22, 114, 241, 0.18);
+        border-radius: 999px;
+        background: rgba(22, 114, 241, 0.08);
+        color: var(--nav-deep);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 800;
+        line-height: 1;
+        transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+      }
+
+      .task-arrow-btn:hover {
+        transform: translateY(-1px);
+        background: rgba(22, 114, 241, 0.14);
+        border-color: rgba(22, 114, 241, 0.28);
+      }
+
+      .task-arrow-btn:disabled {
+        opacity: 0.38;
+        cursor: not-allowed;
+        transform: none;
+      }
+
       .project-toolbar {
         display: flex;
         align-items: center;
@@ -909,7 +941,6 @@
       } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
       import {
         collection,
-        collectionGroup,
         addDoc,
         doc,
         deleteDoc,
@@ -918,6 +949,7 @@
         getFirestore,
         onSnapshot,
         query,
+        updateDoc,
         where,
         setDoc,
         serverTimestamp
@@ -987,6 +1019,7 @@
       let currentTasksSpaceKey = null;
       let activeBoardSection = "board";
       let toastTimer = null;
+      const taskStatusOrder = ["todo", "in-progress", "review", "done"];
 
       function showToast(message) {
         toast.textContent = message;
@@ -1249,6 +1282,61 @@
         return taskLaneTodo;
       }
 
+      function getAdjacentTaskStatus(status, direction) {
+        const normalizedStatus = normalizeTaskStatus(status);
+        const currentIndex = taskStatusOrder.indexOf(normalizedStatus);
+
+        if (currentIndex === -1) {
+          return normalizedStatus;
+        }
+
+        const nextIndex = currentIndex + direction;
+
+        if (nextIndex < 0 || nextIndex >= taskStatusOrder.length) {
+          return normalizedStatus;
+        }
+
+        return taskStatusOrder[nextIndex];
+      }
+
+      async function moveTaskStatus(task, direction) {
+        if (!currentUser) {
+          return;
+        }
+
+        const nextStatus = getAdjacentTaskStatus(task.status, direction);
+
+        if (nextStatus === normalizeTaskStatus(task.status)) {
+          return;
+        }
+
+        const ownerUid = task.spaceOwnerUid || task.ownerUid || currentUser.uid;
+
+        if (!task.spaceId || !task.id) {
+          showToast("Could not move this task.");
+          return;
+        }
+
+        try {
+          await updateDoc(
+            doc(db, "users", ownerUid, "spaces", task.spaceId, "tasks", task.id),
+            {
+              spaceId: task.spaceId,
+              spaceOwnerUid: ownerUid,
+              spaceKey: task.spaceKey || "",
+              spaceName: task.spaceName || "",
+              status: nextStatus,
+              updatedAt: serverTimestamp(),
+              clientUpdatedAt: Date.now()
+            }
+          );
+          showToast(`Task moved to ${nextStatus.replace("-", " ")}.`);
+        } catch (error) {
+          console.error(error);
+          showToast("Could not move this task right now.");
+        }
+      }
+
       function openTaskModal() {
         if (!spaces.length) {
           showToast("Create a space first.");
@@ -1338,8 +1426,34 @@
             assigneeLabel.textContent = "Assignee:";
             assignee.append(assigneeLabel, document.createTextNode(` ${task.assignee || "Unassigned"}`));
 
+            const actions = document.createElement("div");
+            actions.className = "task-actions";
+
+            const backButton = document.createElement("button");
+            backButton.type = "button";
+            backButton.className = "task-arrow-btn";
+            backButton.textContent = "←";
+            backButton.title = "Move to previous status";
+            backButton.setAttribute("aria-label", "Move to previous status");
+            backButton.disabled = normalizeTaskStatus(task.status) === "todo";
+            backButton.addEventListener("click", () => {
+              void moveTaskStatus(task, -1);
+            });
+
+            const forwardButton = document.createElement("button");
+            forwardButton.type = "button";
+            forwardButton.className = "task-arrow-btn";
+            forwardButton.textContent = "→";
+            forwardButton.title = "Move to next status";
+            forwardButton.setAttribute("aria-label", "Move to next status");
+            forwardButton.disabled = normalizeTaskStatus(task.status) === "done";
+            forwardButton.addEventListener("click", () => {
+              void moveTaskStatus(task, 1);
+            });
+
+            actions.append(backButton, forwardButton);
             meta.append(priority, assignee);
-            card.append(head, meta);
+            card.append(head, meta, actions);
             lane.appendChild(card);
           }
         }

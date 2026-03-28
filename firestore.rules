@@ -80,7 +80,12 @@ service cloud.firestore {
               || request.resource.data.status == "done")
             && request.resource.data.createdByUid == request.auth.uid;
 
-          allow update, delete: if request.auth.uid == userId || isUserSpaceMember(userId, spaceId);
+          allow update: if signedIn()
+            && (request.auth.uid == userId || isUserSpaceMember(userId, spaceId))
+            && request.resource.data.spaceId == spaceId
+            && request.resource.data.spaceOwnerUid == userId;
+
+          allow delete: if request.auth.uid == userId || isUserSpaceMember(userId, spaceId);
         }
       }
     }
@@ -110,7 +115,11 @@ service cloud.firestore {
             || request.resource.data.status == "review"
             || request.resource.data.status == "done")
           && request.resource.data.createdByUid == request.auth.uid;
-        allow update, delete: if isLegacySpaceOwner(spaceId) || isLegacySpaceMember(spaceId);
+        allow update: if signedIn()
+          && (isLegacySpaceOwner(spaceId) || isLegacySpaceMember(spaceId))
+          && request.resource.data.spaceId == spaceId;
+
+        allow delete: if isLegacySpaceOwner(spaceId) || isLegacySpaceMember(spaceId);
       }
     }
 
