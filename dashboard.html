@@ -283,6 +283,45 @@
         line-height: 1.6;
       }
 
+      .board-nav {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        flex-wrap: wrap;
+        padding: 2px 0 8px;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+      }
+
+      .board-nav-item {
+        padding: 10px 2px 12px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+      }
+
+      .board-nav-item:hover {
+        color: var(--nav-deep);
+        transform: translateY(-1px);
+      }
+
+      .board-nav-item.active {
+        color: var(--nav-deep);
+        border-bottom-color: var(--nav);
+        background: rgba(22, 114, 241, 0.06);
+      }
+
+      .board-nav-item:focus-visible {
+        outline: none;
+        color: var(--nav-deep);
+        box-shadow: inset 0 -2px 0 var(--nav);
+      }
+
       .project-toolbar {
         display: flex;
         align-items: center;
@@ -582,6 +621,11 @@
           justify-content: flex-start;
         }
 
+        .board-nav {
+          width: 100%;
+          gap: 14px;
+        }
+
         .code-pill {
           align-self: flex-start;
         }
@@ -625,6 +669,14 @@
               <p class="board-meta" id="board-meta">Create a space to begin organizing tasks.</p>
             </div>
           </div>
+
+          <nav class="board-nav" aria-label="Workspace navigation">
+            <button class="board-nav-item active" type="button" data-board-section="board" aria-current="page">Board</button>
+            <button class="board-nav-item" type="button" data-board-section="backlog">Backlog</button>
+            <button class="board-nav-item" type="button" data-board-section="sprint-week">Sprint Week</button>
+            <button class="board-nav-item" type="button" data-board-section="see-teams">See Teams</button>
+            <button class="board-nav-item" type="button" data-board-section="space-info">Space Info</button>
+          </nav>
 
           <div class="project-toolbar" aria-label="project actions">
             <div class="project-actions">
@@ -748,6 +800,7 @@
       const projectKeyInput = document.getElementById("project-key");
       const submitSpace = document.getElementById("submit-space");
       const toast = document.getElementById("toast");
+      const boardNavButtons = Array.from(document.querySelectorAll("[data-board-section]"));
 
       let currentUser = null;
       let nestedSpacesUnsubscribe = null;
@@ -756,6 +809,7 @@
       let legacySpaces = [];
       let spaces = [];
       let selectedSpaceKey = null;
+      let activeBoardSection = "board";
       let toastTimer = null;
 
       function showToast(message) {
@@ -769,6 +823,21 @@
         toastTimer = window.setTimeout(() => {
           toast.hidden = true;
         }, 2400);
+      }
+
+      function setActiveBoardSection(section) {
+        activeBoardSection = section;
+
+        for (const button of boardNavButtons) {
+          const isActive = button.dataset.boardSection === section;
+          button.classList.toggle("active", isActive);
+
+          if (isActive) {
+            button.setAttribute("aria-current", "page");
+          } else {
+            button.removeAttribute("aria-current");
+          }
+        }
       }
 
       function generateKey() {
@@ -1113,6 +1182,34 @@
         showComingSoonAction("Add member");
       });
 
+      for (const button of boardNavButtons) {
+        button.addEventListener("click", () => {
+          setActiveBoardSection(button.dataset.boardSection || "board");
+
+          if (button.dataset.boardSection === "board") {
+            renderBoard();
+            return;
+          }
+
+          if (button.dataset.boardSection === "see-teams") {
+            showTeamSummary();
+            return;
+          }
+
+          if (button.dataset.boardSection === "space-info") {
+            const space = requireSelectedSpace();
+            if (!space) {
+              return;
+            }
+
+            showToast(`${space.projectName || "Untitled space"} · Key ${space.projectKey || "------"}`);
+            return;
+          }
+
+          showComingSoonAction(button.textContent.trim());
+        });
+      }
+
       closeSpaceModal.addEventListener("click", closeModal);
       cancelSpace.addEventListener("click", closeModal);
 
@@ -1179,6 +1276,7 @@
         }
       });
 
+      setActiveBoardSection("board");
       renderWorkspace();
     </script>
   </body>
