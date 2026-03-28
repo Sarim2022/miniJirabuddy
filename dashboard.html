@@ -698,11 +698,17 @@
       } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
       import {
         collection,
+        collectionGroup,
         addDoc,
+        doc,
+        deleteDoc,
+        getDoc,
+        getDocs,
         getFirestore,
         onSnapshot,
         query,
         where,
+        setDoc,
         serverTimestamp
       } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
@@ -744,9 +750,12 @@
       const toast = document.getElementById("toast");
 
       let currentUser = null;
-      let spacesUnsubscribe = null;
+      let nestedSpacesUnsubscribe = null;
+      let legacySpacesUnsubscribe = null;
+      let nestedSpaces = [];
+      let legacySpaces = [];
       let spaces = [];
-      let selectedSpaceId = null;
+      let selectedSpaceKey = null;
       let toastTimer = null;
 
       function showToast(message) {
@@ -780,7 +789,7 @@
       }
 
       function getSelectedSpace() {
-        return spaces.find((space) => space.id === selectedSpaceId) || null;
+        return spaces.find((space) => space.key === selectedSpaceKey) || null;
       }
 
       function requireSelectedSpace(fallbackMessage = "Create a space first.") {
@@ -791,6 +800,91 @@
         }
 
         return space;
+      }
+
+      function spaceKeyFromDoc(spaceDoc, fallbackOwnerUid) {
+        const ownerUid = spaceDoc.ownerUid || fallbackOwnerUid || "unknown";
+        return `${ownerUid}:${spaceDoc.id}`;
+      }
+
+      function normalizeSpaceDoc(spaceDoc, fallbackOwnerUid) {
+        const ownerUid = spaceDoc.ownerUid || fallbackOwnerUid || "unknown";
+
+        return {
+          ...spaceDoc,
+          ownerUid,
+          key: spaceKeyFromDoc(spaceDoc, ownerUid)
+        };
+      }
+
+      function syncSpaces() {
+        const merged = new Map();
+
+        for (const space of [...legacySpaces, ...nestedSpaces]) {
+          merged.set(space.key, space);
+        }
+
+        spaces = Array.from(merged.values()).sort(
+          (a, b) => (b.clientCreatedAt || 0) - (a.clientCreatedAt || 0)
+        );
+
+        if (spaces.length && !spaces.some((space) => space.key === selectedSpaceKey)) {
+          selectedSpaceKey = spaces[0].key;
+        }
+
+        if (!spaces.length) {
+          selectedSpaceKey = null;
+        }
+
+        renderWorkspace();
+      }
+
+      function updateNestedSpaces(nextSpaces) {
+        nestedSpaces = nextSpaces;
+        syncSpaces();
+      }
+
+      function updateLegacySpaces(nextSpaces) {
+        legacySpaces = nextSpaces;
+        syncSpaces();
+      }
+
+      async function migrateLegacySpaces(uid) {
+        const legacyQueryRef = query(
+          collection(db, "spaces"),
+          where("memberUids", "array-contains", uid)
+        );
+        const legacySnapshot = await getDocs(legacyQueryRef);
+
+        for (const legacyDoc of legacySnapshot.docs) {
+          const legacyData = legacyDoc.data();
+          const ownerUid = legacyData.ownerUid || uid;
+
+          if (ownerUid !== uid) {
+            continue;
+          }
+
+          const nextSpaceRef = doc(db, "users", ownerUid, "spaces", legacyDoc.id);
+          const nextSpaceSnap = await getDoc(nextSpaceRef);
+
+          if (!nextSpaceSnap.exists()) {
+            await setDoc(nextSpaceRef, legacyData);
+          }
+
+          const legacyTasksSnapshot = await getDocs(
+            collection(db, "spaces", legacyDoc.id, "tasks")
+          );
+
+          for (const legacyTaskDoc of legacyTasksSnapshot.docs) {
+            await setDoc(
+              doc(db, "users", ownerUid, "spaces", legacyDoc.id, "tasks", legacyTaskDoc.id),
+              legacyTaskDoc.data()
+            );
+            await deleteDoc(legacyTaskDoc.ref);
+          }
+
+          await deleteDoc(legacyDoc.ref);
+        }
       }
 
       async function shareSelectedSpace() {
@@ -847,7 +941,7 @@
         for (const space of spaces) {
           const item = document.createElement("button");
           item.type = "button";
-          item.className = `space-item${space.id === selectedSpaceId ? " active" : ""}`;
+          item.className = `space-item${space.key === selectedSpaceKey ? " active" : ""}`;
 
           const info = document.createElement("span");
           const title = document.createElement("strong");
@@ -861,7 +955,7 @@
 
           item.append(info, action);
           item.addEventListener("click", () => {
-            selectedSpaceId = space.id;
+            selectedSpaceKey = space.key;
             renderSpaces();
             renderBoard();
           });
@@ -901,47 +995,85 @@
           clientCreatedAt: Date.now()
         };
 
-        const ref = await addDoc(collection(db, "spaces"), payload);
+        const ref = await addDoc(collection(db, "users", currentUser.uid, "spaces"), payload);
 
-        return { id: ref.id, ...payload };
+        return {
+          id: ref.id,
+          path: ref.path,
+          key: `${currentUser.uid}:${ref.id}`,
+          ...payload
+        };
       }
 
       function startSpacesListener(uid) {
-        if (spacesUnsubscribe) {
-          spacesUnsubscribe();
+        if (nestedSpacesUnsubscribe) {
+          nestedSpacesUnsubscribe();
         }
 
-        const queryRef = query(
-          collection(db, "spaces"),
+        if (legacySpacesUnsubscribe) {
+          legacySpacesUnsubscribe();
+        }
+
+        const nestedQueryRef = query(
+          collectionGroup(db, "spaces"),
           where("memberUids", "array-contains", uid)
         );
-        spacesUnsubscribe = onSnapshot(
-          queryRef,
+        nestedSpacesUnsubscribe = onSnapshot(
+          nestedQueryRef,
           { includeMetadataChanges: true },
           (snapshot) => {
             const nextSpaces = snapshot.docs
-              .map((spaceDoc) => ({ id: spaceDoc.id, ...spaceDoc.data() }))
-              .filter((space) => Array.isArray(space.memberUids) && space.memberUids.includes(uid))
+              .map((spaceDoc) =>
+                normalizeSpaceDoc(
+                  {
+                    id: spaceDoc.id,
+                    path: spaceDoc.ref.path,
+                    ...spaceDoc.data()
+                  },
+                  uid
+                )
+              )
               .sort((a, b) => (b.clientCreatedAt || 0) - (a.clientCreatedAt || 0));
 
-            spaces = nextSpaces;
-
-            if (spaces.length && !spaces.some((space) => space.id === selectedSpaceId)) {
-              selectedSpaceId = spaces[0].id;
-            }
-
-            renderWorkspace();
+            updateNestedSpaces(nextSpaces);
           },
           (error) => {
-            console.error("Space listener failed:", error);
-            showToast("Could not load spaces from Firebase.");
+            console.error("Nested space listener failed:", error);
+          }
+        );
+
+        const legacyQueryRef = query(
+          collection(db, "spaces"),
+          where("memberUids", "array-contains", uid)
+        );
+        legacySpacesUnsubscribe = onSnapshot(
+          legacyQueryRef,
+          { includeMetadataChanges: true },
+          (snapshot) => {
+            const nextSpaces = snapshot.docs
+              .map((spaceDoc) =>
+                normalizeSpaceDoc(
+                  {
+                    id: spaceDoc.id,
+                    path: spaceDoc.ref.path,
+                    ...spaceDoc.data()
+                  },
+                  uid
+                )
+              )
+              .sort((a, b) => (b.clientCreatedAt || 0) - (a.clientCreatedAt || 0));
+
+            updateLegacySpaces(nextSpaces);
+          },
+          (error) => {
+            console.error("Legacy space listener failed:", error);
           }
         );
       }
 
       onAuthStateChanged(auth, (user) => {
         if (!user) {
-          window.location.href = "index.html";
+          window.location.replace("index.html");
           return;
         }
 
@@ -949,6 +1081,9 @@
         accountImage.src = "user.png";
         accountImage.alt = user.displayName ? `${user.displayName} account image` : "User account";
         startSpacesListener(user.uid);
+        void migrateLegacySpaces(user.uid).catch((error) => {
+          console.warn("Legacy space migration skipped:", error);
+        });
       });
 
       createSpaceBtn.addEventListener("click", openSpaceModal);
@@ -1015,14 +1150,14 @@
           projectKeyInput.value = projectKey;
           const createdSpace = await createSpace(projectName, projectKey);
 
-          spaces = [
+          selectedSpaceKey = createdSpace.key;
+          nestedSpaces = [
             createdSpace,
-            ...spaces.filter((space) => space.id !== createdSpace.id)
+            ...nestedSpaces.filter((space) => space.key !== createdSpace.key)
           ];
-          selectedSpaceId = createdSpace.id;
+          syncSpaces();
           closeModal();
           showToast(`Space "${projectName}" created.`);
-          renderWorkspace();
         } catch (error) {
           console.error(error);
           showToast("Could not create this space right now.");
@@ -1036,7 +1171,7 @@
 
         try {
           await signOut(auth);
-          window.location.href = "index.html";
+          window.location.replace("index.html");
         } catch (error) {
           console.error(error);
           showToast("Could not sign out right now.");

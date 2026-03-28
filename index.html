@@ -338,7 +338,7 @@
         }
 
         if (auth.currentUser) {
-          window.location.href = "dashboard.html";
+          window.location.replace("dashboard.html");
           return;
         }
 
@@ -363,7 +363,7 @@
               : "Signed in. Firestore profile sync can be finished from the console setup.",
             profileSaved ? "success" : "neutral"
           );
-          window.location.href = isNewUser ? "newuser.html" : "dashboard.html";
+          window.location.replace(isNewUser ? "newuser.html" : "dashboard.html");
         } catch (error) {
           console.error(error);
 

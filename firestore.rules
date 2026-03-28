@@ -6,38 +6,68 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isSpaceMember(spaceId) {
-      return signedIn()
-        && exists(/databases/$(database)/documents/spaces/$(spaceId))
-        && get(/databases/$(database)/documents/spaces/$(spaceId)).data.memberUids.hasAny([request.auth.uid]);
+    function userSpaceDoc(userId, spaceId) {
+      return /databases/$(database)/documents/users/$(userId)/spaces/$(spaceId);
     }
 
-    function isSpaceOwner(spaceId) {
+    function legacySpaceDoc(spaceId) {
+      return /databases/$(database)/documents/spaces/$(spaceId);
+    }
+
+    function isUserSpaceMember(userId, spaceId) {
       return signedIn()
-        && exists(/databases/$(database)/documents/spaces/$(spaceId))
-        && get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerUid == request.auth.uid;
+        && exists(userSpaceDoc(userId, spaceId))
+        && get(userSpaceDoc(userId, spaceId)).data.memberUids.hasAny([request.auth.uid]);
+    }
+
+    function isUserSpaceOwner(userId, spaceId) {
+      return signedIn()
+        && exists(userSpaceDoc(userId, spaceId))
+        && get(userSpaceDoc(userId, spaceId)).data.ownerUid == request.auth.uid;
+    }
+
+    function isLegacySpaceMember(spaceId) {
+      return signedIn()
+        && exists(legacySpaceDoc(spaceId))
+        && get(legacySpaceDoc(spaceId)).data.memberUids.hasAny([request.auth.uid]);
+    }
+
+    function isLegacySpaceOwner(spaceId) {
+      return signedIn()
+        && exists(legacySpaceDoc(spaceId))
+        && get(legacySpaceDoc(spaceId)).data.ownerUid == request.auth.uid;
     }
 
     match /users/{userId} {
       allow create, read, update, delete: if signedIn() && request.auth.uid == userId;
+
+      match /spaces/{spaceId} {
+        allow create: if signedIn()
+          && userId == request.auth.uid
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.projectName is string
+          && request.resource.data.projectName.size() > 0
+          && request.resource.data.projectKey is string
+          && request.resource.data.projectKey.size() == 6
+          && request.resource.data.memberUids is list
+          && request.resource.data.memberUids.size() == 1
+          && request.resource.data.memberUids.hasAny([request.auth.uid]);
+
+        allow read: if isUserSpaceMember(userId, spaceId);
+        allow update, delete: if isUserSpaceOwner(userId, spaceId);
+
+        match /tasks/{taskId} {
+          allow read, create, update, delete: if isUserSpaceMember(userId, spaceId);
+        }
+      }
     }
 
     match /spaces/{spaceId} {
-      allow create: if signedIn()
-        && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.projectName is string
-        && request.resource.data.projectName.size() > 0
-        && request.resource.data.projectKey is string
-        && request.resource.data.projectKey.size() == 6
-        && request.resource.data.memberUids is list
-        && request.resource.data.memberUids.size() == 1
-        && request.resource.data.memberUids.hasAny([request.auth.uid]);
-
-      allow read: if isSpaceMember(spaceId);
-      allow update, delete: if isSpaceOwner(spaceId);
+      allow read: if isLegacySpaceMember(spaceId);
+      allow update, delete: if isLegacySpaceOwner(spaceId);
 
       match /tasks/{taskId} {
-        allow read, create, update, delete: if isSpaceMember(spaceId);
+        allow read, create, update, delete: if isLegacySpaceMember(spaceId);
       }
     }
 
