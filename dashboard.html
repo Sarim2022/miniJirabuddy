@@ -283,6 +283,50 @@
         line-height: 1.6;
       }
 
+      .project-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .project-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .project-btn,
+      .project-btn-primary {
+        min-height: 40px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 800;
+        transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+      }
+
+      .project-btn {
+        background: rgba(15, 23, 42, 0.06);
+        color: var(--text);
+        border-color: rgba(15, 23, 42, 0.08);
+      }
+
+      .project-btn-primary {
+        background: linear-gradient(135deg, var(--nav-deep), var(--nav));
+        color: #fff;
+        box-shadow: 0 12px 24px rgba(22, 114, 241, 0.18);
+      }
+
+      .project-btn:hover,
+      .project-btn-primary:hover {
+        transform: translateY(-1px);
+      }
+
       .code-pill {
         display: inline-flex;
         align-items: center;
@@ -528,6 +572,16 @@
           flex-direction: column;
         }
 
+        .project-toolbar {
+          width: 100%;
+          align-items: stretch;
+        }
+
+        .project-actions {
+          width: 100%;
+          justify-content: flex-start;
+        }
+
         .code-pill {
           align-self: flex-start;
         }
@@ -570,6 +624,18 @@
               <h1 class="board-title" id="board-title">No Space</h1>
               <p class="board-meta" id="board-meta">Create a space to begin organizing tasks.</p>
             </div>
+          </div>
+
+          <div class="project-toolbar" aria-label="project actions">
+            <div class="project-actions">
+              <button class="project-btn-primary" id="create-jira-btn" type="button">Create Jira</button>
+              <button class="project-btn" id="share-btn" type="button">Share</button>
+              <button class="project-btn" id="see-teams-btn" type="button">See Teams</button>
+              <button class="project-btn" id="backlog-btn" type="button">Backlog</button>
+              <button class="project-btn" id="sprint-week-btn" type="button">Sprint Week</button>
+              <button class="project-btn" id="add-member-btn" type="button">Add Member</button>
+            </div>
+
             <div class="code-pill" id="board-key">------</div>
           </div>
 
@@ -657,6 +723,12 @@
       const logoutBtn = document.getElementById("logout-btn");
       const createSpaceBtn = document.getElementById("create-space-btn");
       const createTaskBtn = document.getElementById("create-task-btn");
+      const createJiraBtn = document.getElementById("create-jira-btn");
+      const shareBtn = document.getElementById("share-btn");
+      const seeTeamsBtn = document.getElementById("see-teams-btn");
+      const backlogBtn = document.getElementById("backlog-btn");
+      const sprintWeekBtn = document.getElementById("sprint-week-btn");
+      const addMemberBtn = document.getElementById("add-member-btn");
       const spaceCount = document.getElementById("space-count");
       const spaceList = document.getElementById("space-list");
       const boardTitle = document.getElementById("board-title");
@@ -709,6 +781,55 @@
 
       function getSelectedSpace() {
         return spaces.find((space) => space.id === selectedSpaceId) || null;
+      }
+
+      function requireSelectedSpace(fallbackMessage = "Create a space first.") {
+        const space = getSelectedSpace();
+        if (!space) {
+          showToast(fallbackMessage);
+          return null;
+        }
+
+        return space;
+      }
+
+      async function shareSelectedSpace() {
+        const space = requireSelectedSpace();
+        if (!space) {
+          return;
+        }
+
+        const shareText = [
+          `miniJira space: ${space.projectName || "Untitled space"}`,
+          `Project key: ${space.projectKey || "------"}`
+        ].join("\n");
+
+        try {
+          await navigator.clipboard.writeText(shareText);
+          showToast("Project details copied to clipboard.");
+        } catch (error) {
+          console.error(error);
+          showToast("Could not copy, but the project key is shown above.");
+        }
+      }
+
+      function showComingSoonAction(label) {
+        const space = requireSelectedSpace();
+        if (!space) {
+          return;
+        }
+
+        showToast(`${label} for "${space.projectName || "Untitled space"}" is coming next.`);
+      }
+
+      function showTeamSummary() {
+        const space = requireSelectedSpace();
+        if (!space) {
+          return;
+        }
+
+        const count = Array.isArray(space.memberUids) ? space.memberUids.length : 0;
+        showToast(`${count} team member${count === 1 ? "" : "s"} in this space.`);
       }
 
       function renderSpaces() {
@@ -835,6 +956,26 @@
       createTaskBtn.addEventListener("click", () => {
         const space = getSelectedSpace();
         showToast(space ? `Task creation for "${space.projectName}" comes next.` : "Create a space first.");
+      });
+
+      createJiraBtn.addEventListener("click", () => {
+        showComingSoonAction("Create Jira");
+      });
+
+      shareBtn.addEventListener("click", shareSelectedSpace);
+
+      seeTeamsBtn.addEventListener("click", showTeamSummary);
+
+      backlogBtn.addEventListener("click", () => {
+        showComingSoonAction("Backlog");
+      });
+
+      sprintWeekBtn.addEventListener("click", () => {
+        showComingSoonAction("Sprint Week");
+      });
+
+      addMemberBtn.addEventListener("click", () => {
+        showComingSoonAction("Add member");
       });
 
       closeSpaceModal.addEventListener("click", closeModal);
