@@ -435,11 +435,20 @@
         flex-wrap: wrap;
       }
 
-      .project-actions {
+      .project-details {
         display: flex;
         align-items: center;
         gap: 10px;
         flex-wrap: wrap;
+      }
+
+      .project-details-kicker {
+        margin: 0;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--muted);
+        font-weight: 700;
       }
 
       .project-btn,
@@ -620,6 +629,12 @@
         box-shadow: 0 0 0 4px rgba(22, 114, 241, 0.12);
       }
 
+      .field-hint {
+        margin: -2px 0 0;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+
       .field input[readonly] {
         background: rgba(248, 251, 255, 0.95);
         color: rgba(11, 18, 32, 0.86);
@@ -737,7 +752,7 @@
           align-items: stretch;
         }
 
-        .project-actions {
+        .project-details {
           width: 100%;
           justify-content: flex-start;
         }
@@ -803,13 +818,10 @@
             <button class="board-nav-item" type="button" data-board-section="space-info">Space Info</button>
           </nav>
 
-          <div class="project-toolbar" aria-label="project actions">
-            <div class="project-actions">
-              <button class="project-btn" id="share-btn" type="button">Share</button>
-              <button class="project-btn" id="see-teams-btn" type="button">See Teams</button>
-              <button class="project-btn" id="backlog-btn" type="button">Backlog</button>
-              <button class="project-btn" id="sprint-week-btn" type="button">Sprint Week</button>
-              <button class="project-btn" id="add-member-btn" type="button">Add Member</button>
+          <div class="project-toolbar" aria-label="Project details">
+            <div class="project-details">
+              <p class="project-details-kicker">Project details</p>
+              <button class="project-btn-primary" id="show-all-work-btn" type="button">Show all work</button>
             </div>
 
             <div class="code-pill" id="board-key">------</div>
@@ -880,13 +892,14 @@
 
         <form class="space-form" id="task-form">
           <div class="field">
-            <label for="task-name">Task name</label>
-            <input id="task-name" name="task-name" type="text" placeholder="Enter task name" required maxlength="80">
+            <label for="task-space">Choose space</label>
+            <select id="task-space" name="task-space" required></select>
+            <p class="field-hint">Available spaces are listed here.</p>
           </div>
 
           <div class="field">
-            <label for="task-space">Space</label>
-            <select id="task-space" name="task-space" required></select>
+            <label for="task-name">Task name</label>
+            <input id="task-name" name="task-name" type="text" placeholder="Enter task name" required maxlength="80">
           </div>
 
           <div class="field">
@@ -972,11 +985,7 @@
       const logoutBtn = document.getElementById("logout-btn");
       const createSpaceBtn = document.getElementById("create-space-btn");
       const createTaskBtn = document.getElementById("create-task-btn");
-      const shareBtn = document.getElementById("share-btn");
-      const seeTeamsBtn = document.getElementById("see-teams-btn");
-      const backlogBtn = document.getElementById("backlog-btn");
-      const sprintWeekBtn = document.getElementById("sprint-week-btn");
-      const addMemberBtn = document.getElementById("add-member-btn");
+      const showAllWorkBtn = document.getElementById("show-all-work-btn");
       const spaceCount = document.getElementById("space-count");
       const spaceList = document.getElementById("space-list");
       const boardTitle = document.getElementById("board-title");
@@ -1129,40 +1138,48 @@
       }
 
       async function migrateLegacySpaces(uid) {
-        const legacyQueryRef = query(
-          collection(db, "spaces"),
-          where("memberUids", "array-contains", uid)
-        );
-        const legacySnapshot = await getDocs(legacyQueryRef);
-
-        for (const legacyDoc of legacySnapshot.docs) {
-          const legacyData = legacyDoc.data();
-          const ownerUid = legacyData.ownerUid || uid;
-
-          if (ownerUid !== uid) {
-            continue;
-          }
-
-          const nextSpaceRef = doc(db, "users", ownerUid, "spaces", legacyDoc.id);
-          const nextSpaceSnap = await getDoc(nextSpaceRef);
-
-          if (!nextSpaceSnap.exists()) {
-            await setDoc(nextSpaceRef, legacyData);
-          }
-
-          const legacyTasksSnapshot = await getDocs(
-            collection(db, "spaces", legacyDoc.id, "tasks")
+        try {
+          const legacyQueryRef = query(
+            collection(db, "spaces"),
+            where("memberUids", "array-contains", uid)
           );
+          const legacySnapshot = await getDocs(legacyQueryRef);
 
-          for (const legacyTaskDoc of legacyTasksSnapshot.docs) {
-            await setDoc(
-              doc(db, "users", ownerUid, "spaces", legacyDoc.id, "tasks", legacyTaskDoc.id),
-              legacyTaskDoc.data()
+          for (const legacyDoc of legacySnapshot.docs) {
+            const legacyData = legacyDoc.data();
+            const ownerUid = legacyData.ownerUid || uid;
+
+            if (ownerUid !== uid) {
+              continue;
+            }
+
+            const nextSpaceRef = doc(db, "users", ownerUid, "spaces", legacyDoc.id);
+            const nextSpaceSnap = await getDoc(nextSpaceRef);
+
+            if (!nextSpaceSnap.exists()) {
+              await setDoc(nextSpaceRef, legacyData);
+            }
+
+            const legacyTasksSnapshot = await getDocs(
+              collection(db, "spaces", legacyDoc.id, "tasks")
             );
-            await deleteDoc(legacyTaskDoc.ref);
+
+            for (const legacyTaskDoc of legacyTasksSnapshot.docs) {
+              await setDoc(
+                doc(db, "users", ownerUid, "spaces", legacyDoc.id, "tasks", legacyTaskDoc.id),
+                legacyTaskDoc.data()
+              );
+              await deleteDoc(legacyTaskDoc.ref);
+            }
+
+            await deleteDoc(legacyDoc.ref);
+          }
+        } catch (error) {
+          if (error?.code === "permission-denied") {
+            return;
           }
 
-          await deleteDoc(legacyDoc.ref);
+          throw error;
         }
       }
 
@@ -1310,8 +1327,6 @@
           return;
         }
 
-        const ownerUid = task.spaceOwnerUid || task.ownerUid || currentUser.uid;
-
         if (!task.spaceId || !task.id) {
           showToast("Could not move this task.");
           return;
@@ -1319,10 +1334,10 @@
 
         try {
           await updateDoc(
-            doc(db, "users", ownerUid, "spaces", task.spaceId, "tasks", task.id),
+            doc(db, "users", currentUser.uid, "spaces", task.spaceId, "tasks", task.id),
             {
               spaceId: task.spaceId,
-              spaceOwnerUid: ownerUid,
+              spaceOwnerUid: currentUser.uid,
               spaceKey: task.spaceKey || "",
               spaceName: task.spaceName || "",
               status: nextStatus,
@@ -1473,7 +1488,7 @@
           return;
         }
 
-        const taskRef = collection(db, "users", space.ownerUid || currentUser.uid, "spaces", space.id, "tasks");
+        const taskRef = collection(db, "users", currentUser.uid, "spaces", space.id, "tasks");
         tasksUnsubscribe = onSnapshot(
           taskRef,
           { includeMetadataChanges: true },
@@ -1633,20 +1648,15 @@
         openTaskModal();
       });
 
-      shareBtn.addEventListener("click", shareSelectedSpace);
+      showAllWorkBtn.addEventListener("click", () => {
+        const space = requireSelectedSpace();
+        if (!space) {
+          return;
+        }
 
-      seeTeamsBtn.addEventListener("click", showTeamSummary);
-
-      backlogBtn.addEventListener("click", () => {
-        showComingSoonAction("Backlog");
-      });
-
-      sprintWeekBtn.addEventListener("click", () => {
-        showComingSoonAction("Sprint Week");
-      });
-
-      addMemberBtn.addEventListener("click", () => {
-        showComingSoonAction("Add member");
+        setActiveBoardSection("board");
+        renderBoard();
+        document.querySelector(".kanban")?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
 
       for (const button of boardNavButtons) {
@@ -1770,7 +1780,7 @@
           spaceId: taskSpace.id,
           spaceKey: taskSpace.projectKey || "",
           spaceName: taskSpace.projectName || "",
-          spaceOwnerUid: taskSpace.ownerUid || currentUser.uid,
+          spaceOwnerUid: currentUser.uid,
           issueTag: taskIssueTagInput.value,
           priority: taskPriorityInput.value,
           status: normalizeTaskStatus(taskStatusInput.value),
@@ -1786,7 +1796,7 @@
 
         try {
           await addDoc(
-            collection(db, "users", taskSpace.ownerUid || currentUser.uid, "spaces", taskSpace.id, "tasks"),
+            collection(db, "users", currentUser.uid, "spaces", taskSpace.id, "tasks"),
             payload
           );
           selectedSpaceKey = taskSpace.key;
@@ -1795,7 +1805,9 @@
           showToast(`Task "${taskName}" created.`);
         } catch (error) {
           console.error(error);
-          showToast("Could not create this task right now.");
+          showToast(error?.code === "permission-denied"
+            ? "Firebase rules are still blocking task save. Publish the updated Firestore rules."
+            : "Could not create this task right now.");
         } finally {
           submitTask.disabled = false;
         }

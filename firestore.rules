@@ -62,7 +62,6 @@ service cloud.firestore {
           allow create: if signedIn()
             && (request.auth.uid == userId || isUserSpaceMember(userId, spaceId))
             && request.resource.data.spaceId == spaceId
-            && request.resource.data.spaceOwnerUid == userId
             && request.resource.data.taskName is string
             && request.resource.data.taskName.size() > 0
             && request.resource.data.issueTag is string
@@ -82,8 +81,7 @@ service cloud.firestore {
 
           allow update: if signedIn()
             && (request.auth.uid == userId || isUserSpaceMember(userId, spaceId))
-            && request.resource.data.spaceId == spaceId
-            && request.resource.data.spaceOwnerUid == userId;
+            && request.resource.data.spaceId == spaceId;
 
           allow delete: if request.auth.uid == userId || isUserSpaceMember(userId, spaceId);
         }
