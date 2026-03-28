@@ -827,6 +827,18 @@ a {
   line-height: 1.45;
 }
 
+.field-hint[data-tone="success"] {
+  color: #166534;
+}
+
+.field-hint[data-tone="warning"] {
+  color: #9a3412;
+}
+
+.field-hint[data-tone="error"] {
+  color: #b91c1c;
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
